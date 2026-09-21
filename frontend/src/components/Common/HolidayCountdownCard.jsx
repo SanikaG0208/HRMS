@@ -19,11 +19,9 @@ export default function HolidayCountdownCard({ limit = 3 }) {
 
   return (
     <div style={{
-      background: 'linear-gradient(135deg, #EF4444 0%, #F97316 100%)',
+      background: '#1F4E79',
       borderRadius: 18, padding: 18, color: '#fff', position: 'relative', overflow: 'hidden',
     }}>
-      <div style={{ position: 'absolute', right: -16, top: -16, fontSize: 70, opacity: 0.18 }}>🎉</div>
-
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
         <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5, opacity: 0.9 }}>Holidays</div>
         <button onClick={() => navigate('/profile')} style={{ background: 'rgba(255,255,255,0.18)', border: 'none', color: '#fff', fontSize: 11, fontWeight: 700, borderRadius: 20, padding: '4px 12px', cursor: 'pointer' }}>

@@ -68,7 +68,7 @@ export default function AttendanceCard({
 
   return (
     <div style={{
-      background: 'linear-gradient(135deg, #F59E0B 0%, #F97316 100%)',
+      background: '#1F4E79',
       borderRadius: 18, padding: 18, color: '#fff', position: 'relative', overflow: 'hidden',
     }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10 }}>

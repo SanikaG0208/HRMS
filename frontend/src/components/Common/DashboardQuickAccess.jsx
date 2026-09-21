@@ -51,6 +51,7 @@ export default function DashboardQuickAccess({
   unlimitedBreaks = false,
   managerId,
   hideClockToggle = false,
+  belowInsights = null,
 }) {
   return (
     <div className="dash-quick-access">
@@ -80,6 +81,7 @@ export default function DashboardQuickAccess({
         <PostComposerCard />
         <CelebrationsCard />
         <AttendanceInsightsCard employeeId={employeeId} />
+        {belowInsights}
 
       </div>
     </div>

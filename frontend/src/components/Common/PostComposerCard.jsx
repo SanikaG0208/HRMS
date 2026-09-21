@@ -96,12 +96,12 @@ function PostCard({ post, onLikeToggle, onVote, onViewPollDetails }) {
           <div style={{ fontSize: 13, color: QA.textDark, lineHeight: 1.5 }}>{post.content}</div>
           <PollWidget post={post} onVote={(index) => onVote(post.id, index)} onViewDetails={() => onViewPollDetails(post.id)} />
           <div style={{ display: 'flex', gap: 16, marginTop: 8 }}>
-            <button onClick={() => onLikeToggle(post.id)}
-              style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4, color: post.liked_by_me ? QA.danger : QA.textMuted, fontSize: 11, padding: 0 }}>
+            <button className={`post-social-action${post.liked_by_me ? ' is-active' : ''}`} onClick={() => onLikeToggle(post.id)}
+              style={{ border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4, color: post.liked_by_me ? QA.textDark : QA.textMuted, fontSize: 11, padding: '5px 8px' }}>
               {post.liked_by_me ? <FaHeart size={11} /> : <FaRegHeart size={11} />} {post.like_count > 0 ? post.like_count : 'Like'}
             </button>
-            <button onClick={toggleComments}
-              style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4, color: QA.textMuted, fontSize: 11, padding: 0 }}>
+            <button className={`post-social-action${openComments ? ' is-active' : ''}`} onClick={toggleComments}
+              style={{ border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4, color: QA.textMuted, fontSize: 11, padding: '5px 8px' }}>
               <FaCommentDots size={11} /> {commentCount > 0 ? commentCount : 'Comment'}
             </button>
           </div>
@@ -145,6 +145,7 @@ export default function PostComposerCard() {
   const [showDrawer, setShowDrawer] = useState(false);
   const [postsLastSeen, setPostsLastSeen] = useState(getPostsLastSeen());
   const [pollDrawerPostId, setPollDrawerPostId] = useState(null);
+  const [showComposer, setShowComposer] = useState(false);
 
   const newPostCount = posts.filter(p => new Date(p.created_at) > new Date(postsLastSeen)).length;
 
@@ -230,7 +231,7 @@ export default function PostComposerCard() {
 
   return (
     <div style={QA_CARD_STYLE}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12, gap: 8, flexWrap: 'wrap' }}>
+      <div className="post-composer-toolbar">
         <button onClick={openDrawer}
           style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'none', border: `1px solid ${QA.border}`, borderRadius: 20, padding: '6px 14px', fontSize: 12, fontWeight: 700, color: QA.primary, cursor: 'pointer' }}>
           View All Posts
@@ -240,23 +241,20 @@ export default function PostComposerCard() {
             </span>
           )}
         </button>
-      </div>
-
-      <div style={{ display: 'flex', gap: 6, marginBottom: 12 }}>
         {TABS.map(t => (
-          <button key={t.key} onClick={() => { setTab(t.key); setError(''); }}
+          <button key={t.key} className={`post-composer-tab${tab === t.key && showComposer ? ' is-selected' : ''}`} onClick={() => { setTab(t.key); setShowComposer(true); setError(''); }}
             style={{
               display: 'flex', alignItems: 'center', gap: 5, padding: '6px 14px', borderRadius: 20, border: 'none',
               cursor: 'pointer', fontSize: 12, fontWeight: 700,
-              background: tab === t.key ? QA.primary : '#f3f4f6',
-              color: tab === t.key ? '#fff' : QA.textMuted,
+              background: tab === t.key && showComposer ? QA.primary : '#f3f4f6',
+              color: tab === t.key && showComposer ? '#fff' : QA.textMuted,
             }}>
             <t.icon size={11} /> {t.label}
           </button>
         ))}
       </div>
 
-      {tab === 'announcements' ? (
+      {showComposer && (tab === 'announcements' ? (
         <AnnouncementsList />
       ) : (
         <>
@@ -326,7 +324,7 @@ export default function PostComposerCard() {
         </div>
       )}
         </>
-      )}
+      ))}
 
       <PostsDrawer show={showDrawer} onClose={() => setShowDrawer(false)} />
       <PollDetailsDrawer show={!!pollDrawerPostId} onHide={() => setPollDrawerPostId(null)} postId={pollDrawerPostId} />
