@@ -469,14 +469,14 @@ function FeedPost({ post, viewer, following, onToggleFollow, onReact, onDelete, 
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 12 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
           {REACTIONS.map(r => (
-            <button key={r.key} onClick={() => onReact(post.id, r.key)} title={r.label}
-              style={{ background: post.my_reaction === r.key ? `${r.color}18` : 'none', border: 'none', borderRadius: 20, padding: '5px 9px', cursor: 'pointer', color: post.my_reaction === r.key ? r.color : QA.textMuted, display: 'flex', alignItems: 'center' }}>
+            <button key={r.key} className={`post-social-action${post.my_reaction === r.key ? ' is-active' : ''}`} onClick={() => onReact(post.id, r.key)} title={r.label}
+              style={{ border: 'none', borderRadius: 20, padding: '5px 9px', cursor: 'pointer', color: post.my_reaction === r.key ? QA.textDark : QA.textMuted, display: 'flex', alignItems: 'center' }}>
               <r.icon size={13} />
             </button>
           ))}
           {summary && <span style={{ fontSize: 11, color: QA.textMuted, marginLeft: 4 }}>{summary}</span>}
         </div>
-        <button onClick={() => setShowComments(s => !s)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: QA.textMuted, fontSize: 11, fontWeight: 600 }}>
+        <button className={`post-social-action${showComments ? ' is-active' : ''}`} onClick={() => setShowComments(s => !s)} style={{ border: 'none', cursor: 'pointer', color: QA.textMuted, fontSize: 11, fontWeight: 600, padding: '5px 8px' }}>
           {commentCount > 0 ? `${commentCount} comment${commentCount === 1 ? '' : 's'}` : 'Comment'}
         </button>
       </div>

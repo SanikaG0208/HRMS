@@ -12,8 +12,8 @@ function Bar({ label, value, total, color }) {
         <span style={{ color: QA.textMuted, fontWeight: 600 }}>{label}</span>
         <span style={{ color: QA.textDark, fontWeight: 700 }}>{value}</span>
       </div>
-      <div style={{ marginRight:1, height: 6, borderRadius: 4, background: '#f3f4f6', overflow: 'hidden' }}>
-        <div style={{ height: '100%', width: `${pct}%`, background: color, borderRadius: 4, transition: 'width 0.4s ease' }} />
+      <div className="hrms-progress-track" style={{ marginRight:1, height: 6, borderRadius: 4, background: '#f3f4f6', overflow: 'hidden' }}>
+        <div className="hrms-progress-fill" style={{ height: '100%', width: `${pct}%`, background: color, borderRadius: 4, transition: 'width 0.4s ease' }} />
       </div>
     </div>
   );

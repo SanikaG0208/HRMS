@@ -9,17 +9,17 @@ import { useAuth } from '../../context/AuthContext';
 const BREAK_TYPES = [
     { key: 'tea_break_1', label: 'Tea Break 1', minutes: 15, emoji: '☕' },
     { key: 'tea_break_2', label: 'Tea Break 2', minutes: 15, emoji: '☕' },
-    { key: 'lunch_break', label: 'Lunch Break',  minutes: 30, emoji: '🍽️' },
+    { key: 'lunch_break', label: 'Lunch Break', minutes: 30, emoji: '🍽️' },
 ];
 
-const breakDef   = (key) => BREAK_TYPES.find(t => t.key === key) || { label: 'Break', emoji: '☕', minutes: 0 };
+const breakDef = (key) => BREAK_TYPES.find(t => t.key === key) || { label: 'Break', emoji: '☕', minutes: 0 };
 const breakLabel = (key) => breakDef(key).label;
 const breakEmoji = (key) => breakDef(key).emoji;
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
-const AVATAR_COLORS = ['#6366f1','#8b5cf6','#10b981','#f59e0b','#ef4444','#0ea5e9','#ec4899'];
+const AVATAR_COLORS = ['#6366f1', '#8b5cf6', '#10b981', '#f59e0b', '#ef4444', '#0ea5e9', '#ec4899'];
 const avatarColor = (str) => AVATAR_COLORS[((str || '').charCodeAt(0) || 0) % AVATAR_COLORS.length];
-const initials    = (f, l) => ((f || '')[0] || '?').toUpperCase() + ((l || '')[0] || '').toUpperCase();
+const initials = (f, l) => ((f || '')[0] || '?').toUpperCase() + ((l || '')[0] || '').toUpperCase();
 
 const fmtDuration = (start) => {
     const diff = Math.floor((Date.now() - new Date(start).getTime()) / 1000);
@@ -31,9 +31,9 @@ const fmtDuration = (start) => {
 
 const fmtTime = (iso) => {
     if (!iso) return '--:--';
-    const d   = new Date(iso);
+    const d = new Date(iso);
     const ist = new Date(d.getTime() + 5.5 * 60 * 60 * 1000);
-    const h   = ist.getUTCHours(), m = ist.getUTCMinutes();
+    const h = ist.getUTCHours(), m = ist.getUTCMinutes();
     return `${h % 12 === 0 ? 12 : h % 12}:${String(m).padStart(2, '0')} ${h >= 12 ? 'PM' : 'AM'}`;
 };
 
@@ -76,10 +76,10 @@ function BreakConfirmModal({ icon = '☕', title, message, confirmLabel = 'Yes',
 
 // ── Break dropdown (fixed-position, escapes overflow:hidden parents) ──────────
 function BreakDropdown({ activeBreak, usedTypes, canInteract, acting, error, onStart, onEnd }) {
-    const [open, setOpen]           = useState(false);
+    const [open, setOpen] = useState(false);
     const [pendingType, setPending] = useState(null);
     const [confirmEnd, setConfirmEnd] = useState(false);
-    const allUsed    = BREAK_TYPES.every(t => usedTypes.includes(t.key));
+    const allUsed = BREAK_TYPES.every(t => usedTypes.includes(t.key));
     const pendingDef = BREAK_TYPES.find(t => t.key === pendingType);
 
     const openDropdown = () => {
@@ -126,12 +126,12 @@ function BreakDropdown({ activeBreak, usedTypes, canInteract, acting, error, onS
 
     return (
         <div style={{ display: 'inline-flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
-            <button onClick={openDropdown}
+            <button
+                className="break-start-btn"
+                onClick={openDropdown}
                 disabled={acting || !canInteract || allUsed}
                 style={{
                     ...btnBase,
-                    background: allUsed ? '#e5e7eb' : '#f4a46b',
-                    color: allUsed ? '#fcfdff' : '#fff',
                     cursor: (acting || !canInteract || allUsed) ? 'not-allowed' : 'pointer',
                     opacity: (acting || !canInteract) ? 0.55 : 1,
                 }}
@@ -143,10 +143,13 @@ function BreakDropdown({ activeBreak, usedTypes, canInteract, acting, error, onS
 
             {open && (
                 <div
+                    className="break-type-modal-overlay"
                     onClick={() => setOpen(false)}
-                    style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.35)', backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)', zIndex: 99999, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                 >
-                    <div onClick={e => e.stopPropagation()} style={{ background: '#fff', borderRadius: 18, minWidth: 260, maxWidth: 320, width: '90%', boxShadow: '0 24px 64px rgba(0,0,0,0.22)', overflow: 'hidden' }}>
+                    <div
+                        className="break-type-modal"
+                        onClick={e => e.stopPropagation()}
+                    >
                         <div style={{ padding: '16px 18px 10px', fontSize: 11, fontWeight: 700, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: 0.6, textAlign: 'center' }}>
                             Select Break Type
                         </div>
@@ -154,24 +157,26 @@ function BreakDropdown({ activeBreak, usedTypes, canInteract, acting, error, onS
                             const used = usedTypes.includes(t.key);
                             return (
                                 <button key={t.key}
-                                    onClick={() => { if (!used) { setPending(t.key); setOpen(false); } }}
-                                    disabled={used}
-                                    style={{
-                                        display: 'flex', alignItems: 'center', gap: 10,
-                                        width: '100%', padding: '12px 18px',
-                                        border: 'none', textAlign: 'left',
-                                        background: used ? '#fafafa' : 'transparent',
-                                        cursor: used ? 'not-allowed' : 'pointer',
-                                        borderTop: '1px solid #f3f4f6',
-                                        transition: 'background 0.15s',
+                                    className={`break-type-row ${used ? 'is-used' : ''}`}
+                                    onClick={() => {
+                                        if (!used) {
+                                            setPending(t.key);
+                                            setOpen(false);
+                                        }
                                     }}
-                                    onMouseEnter={e => { if (!used) e.currentTarget.style.background = '#f5f3ff'; }}
-                                    onMouseLeave={e => { e.currentTarget.style.background = used ? '#fafafa' : 'transparent'; }}
+                                    disabled={used}
+
+
                                 >
                                     <span style={{ fontSize: 20 }}>{t.emoji}</span>
                                     <div style={{ flex: 1 }}>
-                                        <div style={{ fontSize: 14, fontWeight: 600, color: used ? '#9ca3af' : '#111827' }}>{t.label}</div>
-                                        <div style={{ fontSize: 11, color: '#9ca3af' }}>{t.minutes} mins</div>
+                                        <div className="break-option-label">
+                                            {t.label}
+                                        </div>
+
+                                        <div className="break-option-duration">
+                                            {t.minutes} mins
+                                        </div>
                                     </div>
                                     {used
                                         ? <CheckCircle size={15} color="#10b981" />
@@ -179,12 +184,12 @@ function BreakDropdown({ activeBreak, usedTypes, canInteract, acting, error, onS
                                 </button>
                             );
                         })}
-                        <button onClick={() => setOpen(false)} style={{
-                            width: '100%', padding: '12px 0', border: 'none', borderTop: '1px solid #f3f4f6',
-                            background: '#fafafa', color: '#374151', fontWeight: 600, fontSize: 13, cursor: 'pointer',
-                        }}>
-                            Cancel
-                        </button>
+                        <button
+    className="break-type-modal-cancel"
+    onClick={() => setOpen(false)}
+>
+    Cancel
+</button>
                     </div>
                 </div>
             )}
@@ -415,12 +420,12 @@ function MyBreakHistory({ breaks }) {
 
 // ── Team break panel (active + today's history) ───────────────────────────────
 function TeamPanel({ todayBreaks, loading }) {
-    const active    = (todayBreaks || []).filter(b => !b.break_end);
+    const active = (todayBreaks || []).filter(b => !b.break_end);
     const completed = (todayBreaks || []).filter(b => b.break_end);
 
     const EmpChip = ({ b, live }) => {
-        const emp   = b.employee || {};
-        const name  = `${emp.first_name || ''} ${emp.last_name || ''}`.trim() || b.employee_id;
+        const emp = b.employee || {};
+        const name = `${emp.first_name || ''} ${emp.last_name || ''}`.trim() || b.employee_id;
         const color = avatarColor(emp.first_name);
         return (
             <div style={{
@@ -511,14 +516,14 @@ function TeamPanel({ todayBreaks, loading }) {
 // mode="full"          — legacy combined card
 export default function BreakWidget({ isClockedIn = false, isClockedOut = false, mode = 'full', unlimitedBreaks = false }) {
     const { user } = useAuth();
-    const [activeBreak,   setActiveBreak]   = useState(null);
-    const [usedTypes,     setUsedTypes]     = useState([]);
+    const [activeBreak, setActiveBreak] = useState(null);
+    const [usedTypes, setUsedTypes] = useState([]);
     const [sessionBreaks, setSessionBreaks] = useState([]); // own breaks this session
-    const [todayBreaks,   setTodayBreaks]   = useState([]); // team breaks today
+    const [todayBreaks, setTodayBreaks] = useState([]); // team breaks today
     const [totalBreakSecondsToday, setTotalBreakSecondsToday] = useState(0);
-    const [loading,       setLoading]       = useState(true);
-    const [acting,        setActing]        = useState(false);
-    const [error,         setError]         = useState('');
+    const [loading, setLoading] = useState(true);
+    const [acting, setActing] = useState(false);
+    const [error, setError] = useState('');
     const [, setTicker] = useState(0);
     const timerRef = useRef(null);
 
@@ -644,7 +649,7 @@ export default function BreakWidget({ isClockedIn = false, isClockedOut = false,
     // ── team-panel mode ───────────────────────────────────────────────────────
     if (mode === 'team-panel') {
         if (!isManager) return null;
-        const activeCount    = todayBreaks.filter(b => !b.break_end).length;
+        const activeCount = todayBreaks.filter(b => !b.break_end).length;
         const completedCount = todayBreaks.filter(b => b.break_end).length;
         return (
             <div style={{ marginBottom: 16 }}>

@@ -7,6 +7,8 @@ import {
   FaClock,
   FaUmbrellaBeach,
   FaCheckCircle,
+  FaBusinessTime,
+  FaCalendarCheck,
   FaTimesCircle,
   FaHourglassHalf,
   FaEye,
@@ -45,8 +47,10 @@ import { holidays } from '../../data/holidays';
 import EmployeeNotices from './EmployeeNotices';
 import AnnouncementBanner from './AnnouncementBanner';
 import ProfileCompletion from './ProfileCompletion';
+import './EmployeeDashboard.css';
 import BreakWidget from '../Common/BreakWidget';
 import DashboardQuickAccess from '../Common/DashboardQuickAccess';
+import RecentLeaveRequestsCard from '../Common/RecentLeaveRequestsCard';
 import WelcomeBanner from '../Common/WelcomeBanner';
 import { loadDashboardCache, saveDashboardCache } from '../../utils/dashboardCache';
 import {
@@ -106,7 +110,7 @@ const EmployeeDashboard = () => {
     const now = new Date();
     const ist = new Date(now.getTime() + 5.5 * 60 * 60 * 1000);
     const p = (n) => String(n).padStart(2, '0');
-    return `${ist.getUTCFullYear()}-${p(ist.getUTCMonth()+1)}-${p(ist.getUTCDate())} ${p(ist.getUTCHours())}:${p(ist.getUTCMinutes())}:${p(ist.getUTCSeconds())}`;
+    return `${ist.getUTCFullYear()}-${p(ist.getUTCMonth() + 1)}-${p(ist.getUTCDate())} ${p(ist.getUTCHours())}:${p(ist.getUTCMinutes())}:${p(ist.getUTCSeconds())}`;
   };
 
   // Housekeeper-only: proactively hide the clock in/out button (instead of letting them
@@ -287,7 +291,7 @@ const EmployeeDashboard = () => {
       label: 'Present Days',
       data: [0, 0, 0, 0, 0, 0, 0],
       backgroundColor: Array(5).fill('rgba(59,130,246,0.75)').concat(Array(2).fill('rgba(156,163,175,0.45)')),
-      borderColor:      Array(5).fill('rgb(59,130,246)').concat(Array(2).fill('rgb(156,163,175)')),
+      borderColor: Array(5).fill('rgb(59,130,246)').concat(Array(2).fill('rgb(156,163,175)')),
       borderWidth: 0,
       borderRadius: 6,
       barPercentage: 0.6,
@@ -297,7 +301,7 @@ const EmployeeDashboard = () => {
 
   // Monthly chart data (Jan–Dec, hours per month)
   const [monthlyChartData, setMonthlyChartData] = useState({
-    labels: ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'],
+    labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
     datasets: [{
       label: 'Total Working Hours',
       data: Array(12).fill(0),
@@ -314,7 +318,7 @@ const EmployeeDashboard = () => {
     labels: ['Leave Used', 'Remaining Leaves', 'Pending Approval'],
     datasets: [{
       data: [0, 12, 0],
-      backgroundColor: ['#ef4444', '#22c55e', '#f97316'],
+      backgroundColor: ['#C53030', '#168A70', '#C05621'],
       borderWidth: 3,
       borderColor: '#ffffff',
       hoverOffset: 8
@@ -329,7 +333,7 @@ const EmployeeDashboard = () => {
     5: 'Excellent Performer', 4: 'Very Good Performer', 3: 'Meets Expectations',
     2: 'Performance Improvement Plan (PIP)', 1: 'Termination Recommended',
   };
-  const PERF_COLORS = { 5: '#22c55e', 4: '#4ade80', 3: '#eab308', 2: '#f97316', 1: '#ef4444' };
+  const PERF_COLORS = { 5: '#168A70', 4: '#3BA58D', 3: '#B7791F', 2: '#C05621', 1: '#C53030' };
 
   const getRoleRatedText = (role) => {
     const r = (role || '').toLowerCase();
@@ -341,9 +345,9 @@ const EmployeeDashboard = () => {
 
   const getRatingAvatarColor = (role) => {
     const r = (role || '').toLowerCase();
-    if (r === 'admin') return '#6366f1';
+    if (r === 'admin') return '#2563EB';
     if (r === 'sub_admin') return '#0ea5e9';
-    return '#10b981';
+    return '#0F766E';
   };
 
   const fmtRatingDate = (d) => {
@@ -488,7 +492,7 @@ const EmployeeDashboard = () => {
         const d = oldRes.value.data;
         const allOld = [
           ...(d.manager_ratings || []).map(r => ({ ...r, _role: 'manager' })),
-          ...(d.admin_ratings   || []).map(r => ({ ...r, _role: 'admin'   })),
+          ...(d.admin_ratings || []).map(r => ({ ...r, _role: 'admin' })),
         ];
         oldReviews = allOld.map((r, i) => ({
           id: `legacy_${i}`,
@@ -666,7 +670,7 @@ const EmployeeDashboard = () => {
     try {
       const now = new Date();
       const month = now.getMonth() + 1;
-      const year  = now.getFullYear();
+      const year = now.getFullYear();
       const res = await axios.get(
         `${API_ENDPOINTS.DEDUCTIONS_EMPLOYEE(user.employeeId)}?month=${month}&year=${year}`
       );
@@ -867,7 +871,7 @@ const EmployeeDashboard = () => {
         label: 'Present Days',
         data: hoursByDay,
         backgroundColor: Array(5).fill('rgba(59,130,246,0.75)').concat(Array(2).fill('rgba(156,163,175,0.45)')),
-        borderColor:      Array(5).fill('rgb(59,130,246)').concat(Array(2).fill('rgb(156,163,175)')),
+        borderColor: Array(5).fill('rgb(59,130,246)').concat(Array(2).fill('rgb(156,163,175)')),
         borderWidth: 0,
         borderRadius: 6,
         barPercentage: 0.6,
@@ -884,7 +888,7 @@ const EmployeeDashboard = () => {
     });
 
     setMonthlyChartData({
-      labels: ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'],
+      labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
       datasets: [{
         label: 'Total Working Hours',
         data: hoursByMonth,
@@ -899,35 +903,22 @@ const EmployeeDashboard = () => {
   };
 
   const updateLeaveChart = () => {
-    const used      = parseFloat(leaveBalance.used) || 0;
-    const pending   = parseFloat(leaveBalance.pending) || 0;
-    const total     = parseFloat(leaveBalance.total_accrued) || 0;
+    const used = parseFloat(leaveBalance.used) || 0;
+    const pending = parseFloat(leaveBalance.pending) || 0;
+    const total = parseFloat(leaveBalance.total_accrued) || 0;
     const available = Math.max(0, total - used - pending);
-    const hasData   = (used + pending + available) > 0;
+    const hasData = (used + pending + available) > 0;
 
     setLeaveChartData({
       labels: ['Leave Used', 'Remaining Leaves', 'Pending Approval'],
       datasets: [{
         data: hasData ? [used, available, pending] : [1, 1, 1],
-        backgroundColor: hasData ? ['#ef4444', '#22c55e', '#f97316'] : ['#e5e7eb', '#e5e7eb', '#e5e7eb'],
+        backgroundColor: hasData ? ['#C53030', '#168A70', '#C05621'] : ['#e5e7eb', '#e5e7eb', '#e5e7eb'],
         borderWidth: 3,
         borderColor: '#ffffff',
         hoverOffset: 8
       }]
     });
-  };
-
-  const getStatusBadge = (status) => {
-    switch (status) {
-      case 'approved':
-        return <Badge bg="success" className="px-2 py-1"><FaCheckCircle className="me-1" size={10} /> Approved</Badge>;
-      case 'pending':
-        return <Badge bg="warning" className="px-2 py-1"><FaHourglassHalf className="me-1" size={10} /> Pending</Badge>;
-      case 'rejected':
-        return <Badge bg="danger" className="px-2 py-1"><FaTimesCircle className="me-1" size={10} /> Rejected</Badge>;
-      default:
-        return <Badge bg="secondary" className="px-2 py-1">Unknown</Badge>;
-    }
   };
 
   const formatLateTime = (lateMinutes) => {
@@ -1009,56 +1000,55 @@ const EmployeeDashboard = () => {
   const isClockedInToday = !!activeSession || (!!attendance?.clock_in && !attendance?.clock_out);
 
   return (
-    <div className="p-2 p-md-3 p-lg-4" style={{ backgroundColor: '#f0f2f5', minHeight: '100vh' }}>
+    <div className="hrms-employee-dashboard p-2 p-md-3 p-lg-4" style={{ minHeight: '100vh' }}>
 
       <WelcomeBanner
         name={employee?.first_name}
-        roleLabel={user?.role === 'housekeeper' ? 'Housekeeper Dashboard' : 'Employee Dashboard'}
+        employeeMeta={{
+          designation: employee?.designation || 'Employee',
+          department: employee?.department || 'Department',
+          employeeId: user?.employeeId,
+          employmentType: employee?.employment_type || 'Full Time',
+        }}
         onRefresh={refreshData}
         refreshing={refreshing}
         belowActions={
-          !networkBlocked && !(user?.role === 'housekeeper' ? false : isMobileDevice) && (
-            <>
+          !networkBlocked &&
+          !(user?.role === 'housekeeper' ? false : isMobileDevice) && (
+            <div className="dashboard-attendance-actions">
+              <div
+                className={`attendance-status-pill ${isClockedInToday ? 'status-working' : 'status-not-clocked'
+                  }`}
+              >
+                <span className="status-dot"></span>
+                {isClockedInToday ? 'Working' : 'Not Clocked In'}
+              </div>
+
               <button
+                className={`attendance-action-btn clock-in-btn ${isClockedInToday ? 'action-disabled' : ''
+                  }`}
                 onClick={handleClockIn}
                 disabled={clockLoading || isClockedInToday}
                 title="Clock In"
-                style={{
-                  display: 'flex', alignItems: 'center', gap: 7, border: 'none', borderRadius: 22,
-                  padding: '10px 18px', fontSize: 13.5, fontWeight: 700,
-                  background: isClockedInToday ? 'rgba(255,255,255,0.15)' : '#fff',
-                  color: isClockedInToday ? 'rgba(255,255,255,0.6)' : '#065f46',
-                  cursor: (clockLoading || isClockedInToday) ? 'not-allowed' : 'pointer',
-                  opacity: clockLoading ? 0.7 : 1,
-                }}
               >
-                <FaSignInAlt size={14} /> Clock In
+                <FaSignInAlt size={14} />
+                <span>{clockLoading ? 'Processing...' : 'Clock In'}</span>
               </button>
+
               <button
+                className={`attendance-action-btn clock-out-btn ${!isClockedInToday ? 'action-disabled' : ''
+                  }`}
                 onClick={() => setShowClockOutConfirm(true)}
                 disabled={clockLoading || !isClockedInToday}
                 title="Clock Out"
-                style={{
-                  display: 'flex', alignItems: 'center', gap: 7, border: 'none', borderRadius: 22,
-                  padding: '10px 18px', fontSize: 13.5, fontWeight: 700,
-                  background: !isClockedInToday ? 'rgba(255,255,255,0.15)' : '#fff',
-                  color: !isClockedInToday ? 'rgba(255,255,255,0.6)' : '#b45309',
-                  cursor: (clockLoading || !isClockedInToday) ? 'not-allowed' : 'pointer',
-                  opacity: clockLoading ? 0.7 : 1,
-                }}
               >
-                <FaSignOutAlt size={14} /> Clock Out
+                <FaSignOutAlt size={14} />
+                <span>Clock Out</span>
               </button>
-            </>
+            </div>
           )
         }
       />
-
-      <div className="d-flex flex-wrap gap-2 align-items-center mb-3">
-        <span className="text-muted small">{employee?.designation || 'Employee'} • {employee?.department || 'Department'}</span>
-        <Badge bg="dark" className="p-2">ID: {user?.employeeId}</Badge>
-        <Badge bg="info" className="p-2">{employee?.employment_type || 'Full Time'}</Badge>
-      </div>
 
       {message.text && (
         <Alert variant={message.type} onClose={() => setMessage({ type: '', text: '' })} dismissible className="py-2 small">
@@ -1087,6 +1077,13 @@ const EmployeeDashboard = () => {
         shiftTiming={employee?.shift_timing}
         unlimitedBreaks={(employee?.department || '').trim().toLowerCase() === 'sales'}
         hideClockToggle
+        belowInsights={
+          <RecentLeaveRequestsCard
+            leaveRequests={leaveRequests}
+            onViewAll={() => navigate('/apply-leave')}
+            onApplyLeave={() => navigate('/apply-leave')}
+          />
+        }
         footerExtra={
           <div style={{ display: 'flex', gap: 2 }}>
             {renderStars(allRatings.length > 0 ? allRatings.reduce((s, r) => s + r.rating, 0) / allRatings.length : 0)}
@@ -1185,24 +1182,71 @@ const EmployeeDashboard = () => {
       )} */}
 
       {/* Statistics Cards - First Row with 3 Cards */}
-      <Row className="mb-4 g-2 g-md-3">
+      <Row className="mb-4 g-3">
         {/* Leave Balance Card */}
         <Col xs={12} sm={6} md={4}>
-          <Card className="border-0 shadow-sm h-100">
-            <Card.Body className="p-3">
-              <div className="d-flex justify-content-between align-items-start">
+          <Card className="border-0 h-100" style={{
+            border: '1px solid #E5E7EB',
+            borderRadius: '14px',
+            boxShadow: '0 2px 8px rgba(15, 23, 42, 0.05)'
+          }}>
+            <Card.Body className="p-4">
+              <div className="d-flex align-items-start gap-2">
+
+                {/* Leave Balance Icon */}
+                <div
+                  className="d-flex align-items-center justify-content-center flex-shrink-0"
+                  style={{
+                    width: '32px',
+                    height: '32px',
+                    borderRadius: '8px',
+                    color: '#374151',
+                    marginTop: '-8px'
+                  }}
+                >
+                  <FaUmbrellaBeach size={14} />
+                </div>
+
+                {/* Leave Balance Content */}
                 <div className="overflow-hidden">
-                  <p className="text-muted small mb-1 text-truncate">Leave Balance</p>
-                  <h4 className="mb-0 fw-bold text-primary">
-                    {leaveBalance.is_probation_complete ? parseFloat(leaveBalance.available).toFixed(1) : parseFloat(leaveBalance.total_accrued).toFixed(1)}
+                  <p
+                    className="mb-2"
+                    style={{
+                      color: '#6B7280',
+                      fontSize: '12px',
+                      fontWeight: 600,
+                      letterSpacing: '0.02em'
+                    }}
+                  >
+                    Leave Balance
+                  </p>
+
+                  <h4
+                    className="mb-1 fw-bold"
+                    style={{
+                      color: '#111827',
+                      fontSize: '26px',
+                      lineHeight: 1.2
+                    }}
+                  >
+                    {leaveBalance.is_probation_complete
+                      ? parseFloat(leaveBalance.available).toFixed(1)
+                      : parseFloat(leaveBalance.total_accrued).toFixed(1)}
                   </h4>
-                  <small className="text-muted text-truncate d-block">
-                    {leaveBalance.is_probation_complete ? `Used: ${parseFloat(leaveBalance.used).toFixed(1)} | Pending: ${parseFloat(leaveBalance.pending).toFixed(1)}` : 'Earned (usable after probation)'}
+
+                  <small
+                    className="d-block text-truncate"
+                    style={{
+                      color: '#9CA3AF',
+                      fontSize: '11px'
+                    }}
+                  >
+                    {leaveBalance.is_probation_complete
+                      ? `Used: ${parseFloat(leaveBalance.used).toFixed(1)} | Pending: ${parseFloat(leaveBalance.pending).toFixed(1)}`
+                      : 'Earned (usable after probation)'}
                   </small>
                 </div>
-                <div className="bg-primary bg-opacity-10 p-3 rounded-circle flex-shrink-0">
-                  <FaUmbrellaBeach className="text-primary" size={24} />
-                </div>
+
               </div>
             </Card.Body>
           </Card>
@@ -1210,19 +1254,66 @@ const EmployeeDashboard = () => {
 
         {/* Present Days Card */}
         <Col xs={12} sm={6} md={4}>
-          <Card className="border-0 shadow-sm h-100">
-            <Card.Body className="p-3">
-              <div className="d-flex justify-content-between align-items-start">
+          <Card className="border-0 h-100" style={{
+            border: '1px solid #E5E7EB',
+            borderRadius: '14px',
+            boxShadow: '0 2px 8px rgba(15, 23, 42, 0.05)'
+          }}>
+            <Card.Body className="p-4">
+              <div className="d-flex align-items-start gap-2">
+
+                {/* Present Days Icon */}
+                <div
+                  className="d-flex align-items-center justify-content-center flex-shrink-0"
+                  style={{
+                    width: '32px',
+                    height: '32px',
+                    borderRadius: '8px',
+                    color: '#374151',
+                    marginTop: '-8px'
+                  }}
+                >
+                  <FaCalendarCheck size={14} />
+                </div>
+
+                {/* Present Days Content */}
                 <div className="overflow-hidden">
-                  <p className="text-muted small mb-1 text-truncate">Present Days</p>
-                  <h4 className="mb-0 fw-bold text-success">{stats.presentDays || 0}</h4>
-                  <small className="text-muted text-truncate d-block">
-                    Absent: <span className="text-danger fw-semibold">{stats.absentDays || 0}</span>
+                  <p
+                    className="mb-2"
+                    style={{
+                      color: '#6B7280',
+                      fontSize: '12px',
+                      fontWeight: 600,
+                      letterSpacing: '0.02em'
+                    }}
+                  >
+                    Present Days
+                  </p>
+
+                  <h4
+                    className="mb-1 fw-bold"
+                    style={{
+                      color: '#111827',
+                      fontSize: '26px',
+                      lineHeight: 1.2
+                    }}
+                  >
+                    {stats.presentDays || 0}
+                  </h4>
+
+                  <small
+                    className="d-block"
+                    style={{
+                      color: '#9CA3AF',
+                      fontSize: '11px'
+                    }}
+                  >
+                    Absent: <span style={{ color: '#6B7280', fontWeight: 600 }}>
+                      {stats.absentDays || 0}
+                    </span>
                   </small>
                 </div>
-                <div className="bg-success bg-opacity-10 p-3 rounded-circle flex-shrink-0">
-                  <FaCheckCircle className="text-success" size={24} />
-                </div>
+
               </div>
             </Card.Body>
           </Card>
@@ -1230,35 +1321,116 @@ const EmployeeDashboard = () => {
 
         {/* Comp-Off Balance Card */}
         <Col xs={12} sm={6} md={4}>
-          <Card className="border-0 shadow-sm h-100">
-            <Card.Body className="p-3">
-              <div className="d-flex justify-content-between align-items-start">
+          <Card className="border-0 h-100" style={{
+            border: '1px solid #E5E7EB',
+            borderRadius: '14px',
+            boxShadow: '0 2px 8px rgba(15, 23, 42, 0.05)'
+          }}>
+            <Card.Body className="p-4">
+              <div className="d-flex align-items-start gap-2">
+
+                {/* Comp-Off Balance Icon */}
+                <div
+                  className="d-flex align-items-center justify-content-center flex-shrink-0"
+                  style={{
+                    width: '32px',
+                    height: '32px',
+                    borderRadius: '8px',
+                    color: '#374151',
+                    marginTop: '-8px'
+                  }}
+                >
+                  <FaBusinessTime size={14} />
+                </div>
+
+                {/* Comp-Off Balance Content */}
                 <div className="overflow-hidden">
-                  <p className="text-muted small mb-1 text-truncate">Comp-Off Balance</p>
-                  <h4 className="mb-0 fw-bold text-purple">{leaveBalance.comp_off_balance || 0}</h4>
-                  <small className="text-muted text-truncate d-block">Earned on holidays</small>
+                  <p
+                    className="mb-2"
+                    style={{
+                      color: '#6B7280',
+                      fontSize: '12px',
+                      fontWeight: 600,
+                      letterSpacing: '0.02em'
+                    }}
+                  >
+                    Comp-Off Balance
+                  </p>
+
+                  <h4
+                    className="mb-1 fw-bold"
+                    style={{
+                      color: '#111827',
+                      fontSize: '26px',
+                      lineHeight: 1.2
+                    }}
+                  >
+                    {leaveBalance.comp_off_balance || 0}
+                  </h4>
+
+                  <small
+                    className="d-block"
+                    style={{
+                      color: '#9CA3AF',
+                      fontSize: '11px'
+                    }}
+                  >
+                    Earned on holidays
+                  </small>
                 </div>
-                <div className="bg-purple bg-opacity-10 p-3 rounded-circle flex-shrink-0">
-                  <FaTrophy className="text-purple" size={24} />
-                </div>
+
               </div>
             </Card.Body>
           </Card>
         </Col>
       </Row>
-
       {/* ── Unified Performance Ratings Card ── */}
       <Row className="mb-4">
         <Col xs={12}>
-          <Card className="border-0 shadow-sm" style={{ borderRadius: 14, overflow: 'hidden' }}>
+          <Card
+            className="border-0 h-100"
+            style={{
+              borderRadius: '16px',
+              overflow: 'hidden',
+              boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
+              background: '#FFFFFF'
+            }}
+          >
             {/* Card header */}
-            <div style={{ padding: '14px 20px 12px', borderBottom: '1px solid #f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <FaStar size={15} style={{ color: '#eab308' }} />
-                <span style={{ fontWeight: 700, fontSize: 15, color: '#0f172a' }}>Performance Ratings</span>
-                {allRatings.length > 0 && (
-                  <Badge bg="secondary" pill style={{ fontSize: 10 }}>{allRatings.length}</Badge>
-                )}
+            <div style={{ padding: '14px 20px 12px', borderBottom: '1px solid #E5E7EB', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div className="d-flex align-items-center gap-2">
+                <div
+                  className="d-flex align-items-center justify-content-center"
+                  style={{
+                    width: '32px',
+                    height: '32px',
+                    borderRadius: '8px',
+                    background: '#F3F4F6'
+                  }}
+                >
+                  <FaStar size={14} style={{ color: '#374151' }} />
+                </div>
+
+                <div>
+                  <div
+                    style={{
+                      fontSize: '14px',
+                      fontWeight: 700,
+                      color: '#111827'
+                    }}
+                  >
+                    Performance Ratings
+                  </div>
+
+                  <div
+                    style={{
+                      fontSize: '11px',
+                      color: '#9CA3AF'
+                    }}
+                  >
+                    Monthly employee evaluations
+                  </div>
+                </div>
               </div>
               {allRatings.length > 5 && (
                 <Button variant="link" size="sm" className="p-0 text-decoration-none small" onClick={() => setShowRatingHistory(true)}>
@@ -1271,21 +1443,21 @@ const EmployeeDashboard = () => {
             {allRatings.length > 0 && (() => {
               const avg = allRatings.reduce((s, r) => s + r.rating, 0) / allRatings.length;
               const latest = allRatings[0];
-              const latestColor = PERF_COLORS[latest.rating] || '#94a3b8';
+              const latestColor = '#374151';
               return (
                 <div style={{ display: 'flex', gap: 0, background: '#f8fafc', borderBottom: '1px solid #f1f5f9', flexWrap: 'wrap' }}>
                   <div style={{ padding: '12px 20px', flex: '1 1 auto', borderRight: '1px solid #f1f5f9' }}>
                     <div style={{ fontSize: 11, color: '#64748b', marginBottom: 4 }}>Overall Rating</div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                      {[1,2,3,4,5].map(n => (
-                        <FaStar key={n} size={13} style={{ color: n <= Math.round(avg) ? '#eab308' : '#e2e8f0' }} />
+                      {[1, 2, 3, 4, 5].map(n => (
+                        <FaStar key={n} size={13} style={{ color: n <= Math.round(avg) ? '#374151' : '#E5E7EB' }} />
                       ))}
                       <span style={{ fontSize: 14, fontWeight: 700, color: '#0f172a' }}>{avg.toFixed(1)} / 5</span>
                     </div>
                   </div>
                   <div style={{ padding: '12px 20px', flex: '0 0 auto', borderRight: '1px solid #f1f5f9', textAlign: 'center' }}>
                     <div style={{ fontSize: 11, color: '#64748b', marginBottom: 4 }}>Total Ratings</div>
-                    <div style={{ fontSize: 20, fontWeight: 700, color: '#6366f1' }}>{allRatings.length}</div>
+                    <div style={{ fontSize: 20, fontWeight: 700, color: '#111827' }}>{allRatings.length}</div>
                   </div>
                   <div style={{ padding: '12px 20px', flex: '1 1 auto' }}>
                     <div style={{ fontSize: 11, color: '#64748b', marginBottom: 4 }}>Latest Status</div>
@@ -1342,7 +1514,7 @@ const EmployeeDashboard = () => {
                           <div style={{ fontSize: 11, color: '#64748b', marginBottom: 5 }}>{r.reviewer_name}</div>
                           {/* Stars + label */}
                           <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginBottom: r.remark ? 6 : 0, flexWrap: 'wrap' }}>
-                            {[1,2,3,4,5].map(n => (
+                            {[1, 2, 3, 4, 5].map(n => (
                               <FaStar key={n} size={14} style={{ color: n <= r.rating ? color : '#e2e8f0' }} />
                             ))}
                             <span style={{ fontSize: 12, fontWeight: 600, color, marginLeft: 4 }}>
@@ -1353,7 +1525,7 @@ const EmployeeDashboard = () => {
                           {r.remark && (
                             <div style={{
                               fontSize: 12, color: '#475569', fontStyle: 'italic',
-                              background: '#f8fafc', borderRadius: 6, padding: '6px 10px',
+                              background: '#FAFAFA', borderRadius: 6, padding: '6px 10px',
                               borderLeft: `3px solid ${color}`, marginTop: 4,
                             }}>
                               "{r.remark}"
@@ -1385,7 +1557,7 @@ const EmployeeDashboard = () => {
               <div className="d-flex align-items-center justify-content-between flex-wrap gap-2">
                 <div className="d-flex align-items-center gap-2">
                   <div style={{ width: 32, height: 32, borderRadius: 8, background: 'rgba(59,130,246,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <FaChartBar size={15} color="#3b82f6" />
+                    <FaChartBar size={15} color="#2563EB" />
                   </div>
                   <div>
                     <div className="fw-bold" style={{ fontSize: 14, color: '#111827' }}>
@@ -1405,7 +1577,7 @@ const EmployeeDashboard = () => {
                       style={{
                         border: 'none', cursor: 'pointer', borderRadius: 6, padding: '4px 12px',
                         fontSize: 11, fontWeight: 600, transition: 'all 0.2s',
-                        background: chartView === v ? '#3b82f6' : 'transparent',
+                        background: chartView === v ? '#101828' : '#fff',
                         color: chartView === v ? '#fff' : '#6b7280'
                       }}
                     >
@@ -1485,7 +1657,7 @@ const EmployeeDashboard = () => {
               <div className="d-flex align-items-center justify-content-between flex-wrap gap-2">
                 <div className="d-flex align-items-center gap-2">
                   <div style={{ width: 32, height: 32, borderRadius: 8, background: 'rgba(34,197,94,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <FaUmbrellaBeach size={15} color="#22c55e" />
+                    <FaUmbrellaBeach size={15} color="#168A70" />
                   </div>
                   <div>
                     <div className="fw-bold" style={{ fontSize: 14, color: '#111827' }}>Leave Distribution</div>
@@ -1493,7 +1665,7 @@ const EmployeeDashboard = () => {
                   </div>
                 </div>
                 <div style={{
-                  background: 'linear-gradient(135deg,#22c55e,#16a34a)',
+                  background: '#168A70',
                   color: '#fff', borderRadius: 20, padding: '3px 12px',
                   fontSize: 12, fontWeight: 700
                 }}>
@@ -1504,16 +1676,16 @@ const EmployeeDashboard = () => {
 
             <Card.Body className="p-3 pt-1">
               {(() => {
-                const used      = parseFloat(leaveBalance.used) || 0;
-                const pending   = parseFloat(leaveBalance.pending) || 0;
-                const total     = parseFloat(leaveBalance.total_accrued) || 0;
+                const used = parseFloat(leaveBalance.used) || 0;
+                const pending = parseFloat(leaveBalance.pending) || 0;
+                const total = parseFloat(leaveBalance.total_accrued) || 0;
                 const available = Math.max(0, total - used - pending);
                 const pct = (v) => total > 0 ? ((v / total) * 100).toFixed(0) : 0;
 
                 const segments = [
-                  { label: 'Leave Used',        value: used,      pct: pct(used),      color: '#ef4444', bg: '#fef2f2', icon: '🔴' },
-                  { label: 'Remaining Leaves',  value: available, pct: pct(available), color: '#22c55e', bg: '#f0fdf4', icon: '🟢' },
-                  { label: 'Pending Approval',  value: pending,   pct: pct(pending),   color: '#f97316', bg: '#fff7ed', icon: '🟠' },
+                  { label: 'Leave Used', value: used, pct: pct(used), color: '#C53030', bg: '#FEF2F2', icon: 'Used' },
+                  { label: 'Remaining Leaves', value: available, pct: pct(available), color: '#168A70', bg: '#ECFDF3', icon: 'Available' },
+                  { label: 'Pending Approval', value: pending, pct: pct(pending), color: '#C05621', bg: '#FFF7ED', icon: 'Pending' },
                 ];
 
                 return (
@@ -1538,7 +1710,7 @@ const EmployeeDashboard = () => {
                               callbacks: {
                                 label: (ctx) => {
                                   const v = ctx.raw;
-                                  return total > 0 ? ` ${v} days (${((v/total)*100).toFixed(0)}%)` : ' No data';
+                                  return total > 0 ? ` ${v} days (${((v / total) * 100).toFixed(0)}%)` : ' No data';
                                 }
                               }
                             }
@@ -1561,8 +1733,8 @@ const EmployeeDashboard = () => {
                               <span style={{ fontSize: 11, color: '#9ca3af', background: '#f3f4f6', borderRadius: 10, padding: '1px 6px' }}>{seg.pct}%</span>
                             </div>
                           </div>
-                          <div style={{ height: 6, borderRadius: 99, background: '#f3f4f6', overflow: 'hidden' }}>
-                            <div style={{
+                          <div className="hrms-progress-track" style={{ height: 6, borderRadius: 99, background: '#f3f4f6', overflow: 'hidden' }}>
+                            <div className="hrms-progress-fill" style={{
                               height: '100%', borderRadius: 99,
                               background: seg.color,
                               width: `${Math.max(parseFloat(seg.pct), seg.value > 0 ? 3 : 0)}%`,
@@ -1575,68 +1747,6 @@ const EmployeeDashboard = () => {
                   </div>
                 );
               })()}
-            </Card.Body>
-          </Card>
-        </Col>
-
-        {/* Recent Leave Requests */}
-        <Col lg={7}>
-          <Card className="border-0 shadow-sm">
-            <Card.Header className="bg-white py-2 py-md-3 d-flex justify-content-between align-items-center">
-              <h6 className="mb-0 small">
-                <FaHistory className="me-2 text-primary" />
-                Recent Leave Requests
-              </h6>
-              <Button variant="link" size="sm" onClick={() => navigate('/apply-leave')} className="text-decoration-none p-0">
-                View All <FaArrowRight className="ms-1" size={10} />
-              </Button>
-            </Card.Header>
-            <Card.Body className="p-0">
-              <div className="table-responsive">
-                <Table hover className="mb-0" size="sm">
-                  <thead className="bg-light">
-                    <tr>
-                      <th className="small text-dark">Leave Type</th>
-                      <th className="small text-dark d-none d-sm-table-cell">Duration</th>
-                      <th className="small text-dark">Date Range</th>
-                      <th className="small text-dark d-none d-md-table-cell">Days</th>
-                      <th className="small text-dark">Status</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {leaveRequests.length > 0 ? (
-                      leaveRequests.map((leave, index) => (
-                        <tr key={leave.id || index}>
-                          <td className="small">
-                            <Badge bg={leave.leave_type === 'Comp-Off' ? 'purple' : 'secondary'} className="px-2 py-1 text-nowrap">
-                              {leave.leave_type === 'Comp-Off' && '🎉 '}{leave.leave_type}
-                            </Badge>
-                          </td>
-                          <td className="small d-none d-sm-table-cell">{leave.leave_duration || 'Full Day'}</td>
-                          <td className="small">
-                            <span className="text-nowrap">{formatDate(leave.start_date)}</span>
-                            {leave.start_date !== leave.end_date && (
-                              <span className="text-nowrap d-block d-sm-inline"> - {formatDate(leave.end_date)}</span>
-                            )}
-                          </td>
-                          <td className="small fw-bold d-none d-md-table-cell">{leave.days_count || 1}</td>
-                          <td className="small">{getStatusBadge(leave.status)}</td>
-                        </tr>
-                      ))
-                    ) : (
-                      <tr>
-                        <td colSpan="5" className="text-center py-4">
-                          <FaUmbrellaBeach size={24} className="text-muted mb-2 opacity-50" />
-                          <p className="text-muted small mb-2">No leave requests found</p>
-                          <Button variant="primary" size="sm" onClick={() => navigate('/apply-leave')}>
-                            Apply for Leave
-                          </Button>
-                        </td>
-                      </tr>
-                    )}
-                  </tbody>
-                </Table>
-              </div>
             </Card.Body>
           </Card>
         </Col>
@@ -1699,7 +1809,7 @@ const EmployeeDashboard = () => {
             </Card>
           )} */}
 
-          {/* <Card className="border-0 shadow-sm">
+        {/* <Card className="border-0 shadow-sm">
             <Card.Header className="bg-white py-2 py-md-3">
               <h6 className="mb-0 small">
                 <FaBell className="me-2 text-primary" />
@@ -1736,7 +1846,7 @@ const EmployeeDashboard = () => {
             <div style={{ display: 'flex', gap: 10 }}>
               <button
                 onClick={() => { setShowClockOutConfirm(false); handleClockOut(); }}
-                style={{ flex: 1, padding: '10px 0', borderRadius: 10, border: 'none', background: '#f97316', color: '#fff', fontWeight: 700, fontSize: 14, cursor: 'pointer' }}
+                style={{ flex: 1, padding: '10px 0', borderRadius: 10, border: 'none', background: '#C05621', color: '#fff', fontWeight: 700, fontSize: 14, cursor: 'pointer' }}
               >
                 Sure
               </button>
@@ -1778,7 +1888,7 @@ const EmployeeDashboard = () => {
                     alignItems: 'flex-start',
                   }}>
                     <div style={{
-                      width: 40, height: 40, borderRadius: '50%', flexShrink: 0,
+                      width: 40, height: 40, borderRadius: '10px', flexShrink: 0,
                       background: avatarBg, color: '#fff',
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
                       fontWeight: 700, fontSize: 14,
@@ -1794,7 +1904,7 @@ const EmployeeDashboard = () => {
                       </div>
                       <div style={{ fontSize: 11, color: '#64748b', marginBottom: 6 }}>{r.reviewer_name}</div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginBottom: r.remark ? 6 : 0, flexWrap: 'wrap' }}>
-                        {[1,2,3,4,5].map(n => (
+                        {[1, 2, 3, 4, 5].map(n => (
                           <FaStar key={n} size={14} style={{ color: n <= r.rating ? color : '#e2e8f0' }} />
                         ))}
                         <span style={{ fontSize: 12, fontWeight: 600, color, marginLeft: 4 }}>
