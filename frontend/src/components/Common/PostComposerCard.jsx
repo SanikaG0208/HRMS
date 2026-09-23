@@ -25,7 +25,7 @@ function AnnouncementsList() {
     let cancelled = false;
     axios.get(API_ENDPOINTS.ANNOUNCEMENTS)
       .then(res => { if (!cancelled) setItems(res.data?.announcements || []); })
-      .catch(() => {})
+      .catch(() => { })
       .finally(() => { if (!cancelled) setLoading(false); });
     return () => { cancelled = true; };
   }, []);
@@ -159,7 +159,7 @@ export default function PostComposerCard() {
   const fetchPosts = () => {
     axios.get(API_ENDPOINTS.POSTS)
       .then(res => { if (res.data?.success) setPosts(res.data.posts || []); })
-      .catch(() => {})
+      .catch(() => { })
       .finally(() => setLoading(false));
   };
 
@@ -228,9 +228,9 @@ export default function PostComposerCard() {
       fetchPosts();
     }
   };
-
+  
   return (
-    <div style={QA_CARD_STYLE}>
+    <div className="post-composer-card" style={QA_CARD_STYLE}>
       <div className="post-composer-toolbar">
         <button onClick={openDrawer}
           style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'none', border: `1px solid ${QA.border}`, borderRadius: 20, padding: '6px 14px', fontSize: 12, fontWeight: 700, color: QA.primary, cursor: 'pointer' }}>
@@ -258,71 +258,71 @@ export default function PostComposerCard() {
         <AnnouncementsList />
       ) : (
         <>
-      <textarea
-        value={content}
-        onChange={e => setContent(e.target.value)}
-        placeholder={tab === 'poll' ? 'Ask a question…' : tab === 'praise' ? 'Say something nice…' : 'Write your post here and mention your peers'}
-        rows={2}
-        style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: `1px solid ${QA.border}`, fontSize: 13, outline: 'none', resize: 'vertical', boxSizing: 'border-box', fontFamily: 'inherit' }}
-      />
+          <textarea
+            value={content}
+            onChange={e => setContent(e.target.value)}
+            placeholder={tab === 'poll' ? 'Ask a question…' : tab === 'praise' ? 'Say something nice…' : 'Write your post here and mention your peers'}
+            rows={2}
+            style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: `1px solid ${QA.border}`, fontSize: 13, outline: 'none', resize: 'vertical', boxSizing: 'border-box', fontFamily: 'inherit' }}
+          />
 
-      {tab === 'poll' && (
-        <div style={{ marginTop: 8, display: 'flex', flexDirection: 'column', gap: 6 }}>
-          {pollOptions.map((opt, i) => (
-            <div key={i} style={{ display: 'flex', gap: 6 }}>
-              <input
-                value={opt}
-                onChange={e => setPollOptions(prev => prev.map((o, idx) => idx === i ? e.target.value : o))}
-                placeholder={`Option ${i + 1}`}
-                style={{ flex: 1, padding: '6px 10px', borderRadius: 6, border: `1px solid ${QA.border}`, fontSize: 12, outline: 'none' }}
-              />
-              {pollOptions.length > 2 && (
-                <button onClick={() => setPollOptions(prev => prev.filter((_, idx) => idx !== i))}
-                  style={{ background: 'none', border: 'none', color: QA.danger, cursor: 'pointer' }}>
-                  <FaTimes size={11} />
+          {tab === 'poll' && (
+            <div style={{ marginTop: 8, display: 'flex', flexDirection: 'column', gap: 6 }}>
+              {pollOptions.map((opt, i) => (
+                <div key={i} style={{ display: 'flex', gap: 6 }}>
+                  <input
+                    value={opt}
+                    onChange={e => setPollOptions(prev => prev.map((o, idx) => idx === i ? e.target.value : o))}
+                    placeholder={`Option ${i + 1}`}
+                    style={{ flex: 1, padding: '6px 10px', borderRadius: 6, border: `1px solid ${QA.border}`, fontSize: 12, outline: 'none' }}
+                  />
+                  {pollOptions.length > 2 && (
+                    <button onClick={() => setPollOptions(prev => prev.filter((_, idx) => idx !== i))}
+                      style={{ background: 'none', border: 'none', color: QA.danger, cursor: 'pointer' }}>
+                      <FaTimes size={11} />
+                    </button>
+                  )}
+                </div>
+              ))}
+              {pollOptions.length < 4 && (
+                <button onClick={() => setPollOptions(prev => [...prev, ''])}
+                  style={{ alignSelf: 'flex-start', background: 'none', border: 'none', color: QA.primary, fontSize: 11, fontWeight: 600, cursor: 'pointer', padding: 0 }}>
+                  + Add option
                 </button>
               )}
             </div>
-          ))}
-          {pollOptions.length < 4 && (
-            <button onClick={() => setPollOptions(prev => [...prev, ''])}
-              style={{ alignSelf: 'flex-start', background: 'none', border: 'none', color: QA.primary, fontSize: 11, fontWeight: 600, cursor: 'pointer', padding: 0 }}>
-              + Add option
-            </button>
           )}
-        </div>
-      )}
 
-      {tab === 'praise' && (
-        <input
-          value={praisedName}
-          onChange={e => setPraisedName(e.target.value)}
-          placeholder="Who are you praising?"
-          style={{ marginTop: 8, width: '100%', padding: '7px 10px', borderRadius: 8, border: `1px solid ${QA.border}`, fontSize: 12, outline: 'none', boxSizing: 'border-box' }}
-        />
-      )}
+          {tab === 'praise' && (
+            <input
+              value={praisedName}
+              onChange={e => setPraisedName(e.target.value)}
+              placeholder="Who are you praising?"
+              style={{ marginTop: 8, width: '100%', padding: '7px 10px', borderRadius: 8, border: `1px solid ${QA.border}`, fontSize: 12, outline: 'none', boxSizing: 'border-box' }}
+            />
+          )}
 
-      {error && <div style={{ fontSize: 11, color: QA.danger, marginTop: 8 }}>{error}</div>}
+          {error && <div style={{ fontSize: 11, color: QA.danger, marginTop: 8 }}>{error}</div>}
 
-      <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 10 }}>
-        <button onClick={submit} disabled={posting}
-          style={{ padding: '7px 18px', borderRadius: 8, border: 'none', background: QA.primary, color: '#fff', fontSize: 12, fontWeight: 700, cursor: posting ? 'not-allowed' : 'pointer', opacity: posting ? 0.6 : 1 }}>
-          {posting ? 'Posting…' : 'Post'}
-        </button>
-      </div>
+          <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 10 }}>
+            <button onClick={submit} disabled={posting}
+              style={{ padding: '7px 18px', borderRadius: 8, border: 'none', background: QA.primary, color: '#fff', fontSize: 12, fontWeight: 700, cursor: posting ? 'not-allowed' : 'pointer', opacity: posting ? 0.6 : 1 }}>
+              {posting ? 'Posting…' : 'Post'}
+            </button>
+          </div>
 
-      {loading ? (
-        <div style={{ fontSize: 12, color: QA.textMuted, marginTop: 10 }}>Loading feed…</div>
-      ) : posts.length === 0 ? (
-        <div style={{ fontSize: 12, color: QA.textMuted, marginTop: 10 }}>No posts yet — say hello to your team!</div>
-      ) : (
-        <div>
-          {/* Compact card shows only the latest update — the rest live behind "View All Posts" */}
-          {posts.slice(0, 1).map(p => (
-            <PostCard key={p.id} post={p} onLikeToggle={toggleLike} onVote={voteOnPoll} onViewPollDetails={setPollDrawerPostId} />
-          ))}
-        </div>
-      )}
+          {loading ? (
+            <div style={{ fontSize: 12, color: QA.textMuted, marginTop: 10 }}>Loading feed…</div>
+          ) : posts.length === 0 ? (
+            <div style={{ fontSize: 12, color: QA.textMuted, marginTop: 10 }}>No posts yet — say hello to your team!</div>
+          ) : (
+            <div>
+              {/* Compact card shows only the latest update — the rest live behind "View All Posts" */}
+              {posts.slice(0, 1).map(p => (
+                <PostCard key={p.id} post={p} onLikeToggle={toggleLike} onVote={voteOnPoll} onViewPollDetails={setPollDrawerPostId} />
+              ))}
+            </div>
+          )}
         </>
       ))}
 

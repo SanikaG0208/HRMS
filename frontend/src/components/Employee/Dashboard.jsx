@@ -7,6 +7,8 @@ import {
   FaClock,
   FaUmbrellaBeach,
   FaCheckCircle,
+  FaBusinessTime,
+  FaCalendarCheck,
   FaTimesCircle,
   FaHourglassHalf,
   FaEye,
@@ -45,6 +47,7 @@ import { holidays } from '../../data/holidays';
 import EmployeeNotices from './EmployeeNotices';
 import AnnouncementBanner from './AnnouncementBanner';
 import ProfileCompletion from './ProfileCompletion';
+import './EmployeeDashboard.css';
 import BreakWidget from '../Common/BreakWidget';
 import DashboardQuickAccess from '../Common/DashboardQuickAccess';
 import RecentLeaveRequestsCard from '../Common/RecentLeaveRequestsCard';
@@ -107,7 +110,7 @@ const EmployeeDashboard = () => {
     const now = new Date();
     const ist = new Date(now.getTime() + 5.5 * 60 * 60 * 1000);
     const p = (n) => String(n).padStart(2, '0');
-    return `${ist.getUTCFullYear()}-${p(ist.getUTCMonth()+1)}-${p(ist.getUTCDate())} ${p(ist.getUTCHours())}:${p(ist.getUTCMinutes())}:${p(ist.getUTCSeconds())}`;
+    return `${ist.getUTCFullYear()}-${p(ist.getUTCMonth() + 1)}-${p(ist.getUTCDate())} ${p(ist.getUTCHours())}:${p(ist.getUTCMinutes())}:${p(ist.getUTCSeconds())}`;
   };
 
   // Housekeeper-only: proactively hide the clock in/out button (instead of letting them
@@ -288,7 +291,7 @@ const EmployeeDashboard = () => {
       label: 'Present Days',
       data: [0, 0, 0, 0, 0, 0, 0],
       backgroundColor: Array(5).fill('rgba(59,130,246,0.75)').concat(Array(2).fill('rgba(156,163,175,0.45)')),
-      borderColor:      Array(5).fill('rgb(59,130,246)').concat(Array(2).fill('rgb(156,163,175)')),
+      borderColor: Array(5).fill('rgb(59,130,246)').concat(Array(2).fill('rgb(156,163,175)')),
       borderWidth: 0,
       borderRadius: 6,
       barPercentage: 0.6,
@@ -298,7 +301,7 @@ const EmployeeDashboard = () => {
 
   // Monthly chart data (Jan–Dec, hours per month)
   const [monthlyChartData, setMonthlyChartData] = useState({
-    labels: ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'],
+    labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
     datasets: [{
       label: 'Total Working Hours',
       data: Array(12).fill(0),
@@ -489,7 +492,7 @@ const EmployeeDashboard = () => {
         const d = oldRes.value.data;
         const allOld = [
           ...(d.manager_ratings || []).map(r => ({ ...r, _role: 'manager' })),
-          ...(d.admin_ratings   || []).map(r => ({ ...r, _role: 'admin'   })),
+          ...(d.admin_ratings || []).map(r => ({ ...r, _role: 'admin' })),
         ];
         oldReviews = allOld.map((r, i) => ({
           id: `legacy_${i}`,
@@ -667,7 +670,7 @@ const EmployeeDashboard = () => {
     try {
       const now = new Date();
       const month = now.getMonth() + 1;
-      const year  = now.getFullYear();
+      const year = now.getFullYear();
       const res = await axios.get(
         `${API_ENDPOINTS.DEDUCTIONS_EMPLOYEE(user.employeeId)}?month=${month}&year=${year}`
       );
@@ -868,7 +871,7 @@ const EmployeeDashboard = () => {
         label: 'Present Days',
         data: hoursByDay,
         backgroundColor: Array(5).fill('rgba(59,130,246,0.75)').concat(Array(2).fill('rgba(156,163,175,0.45)')),
-        borderColor:      Array(5).fill('rgb(59,130,246)').concat(Array(2).fill('rgb(156,163,175)')),
+        borderColor: Array(5).fill('rgb(59,130,246)').concat(Array(2).fill('rgb(156,163,175)')),
         borderWidth: 0,
         borderRadius: 6,
         barPercentage: 0.6,
@@ -885,7 +888,7 @@ const EmployeeDashboard = () => {
     });
 
     setMonthlyChartData({
-      labels: ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'],
+      labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
       datasets: [{
         label: 'Total Working Hours',
         data: hoursByMonth,
@@ -900,11 +903,11 @@ const EmployeeDashboard = () => {
   };
 
   const updateLeaveChart = () => {
-    const used      = parseFloat(leaveBalance.used) || 0;
-    const pending   = parseFloat(leaveBalance.pending) || 0;
-    const total     = parseFloat(leaveBalance.total_accrued) || 0;
+    const used = parseFloat(leaveBalance.used) || 0;
+    const pending = parseFloat(leaveBalance.pending) || 0;
+    const total = parseFloat(leaveBalance.total_accrued) || 0;
     const available = Math.max(0, total - used - pending);
-    const hasData   = (used + pending + available) > 0;
+    const hasData = (used + pending + available) > 0;
 
     setLeaveChartData({
       labels: ['Leave Used', 'Remaining Leaves', 'Pending Approval'],
@@ -1010,39 +1013,39 @@ const EmployeeDashboard = () => {
         onRefresh={refreshData}
         refreshing={refreshing}
         belowActions={
-          !networkBlocked && !(user?.role === 'housekeeper' ? false : isMobileDevice) && (
-            <>
+          !networkBlocked &&
+          !(user?.role === 'housekeeper' ? false : isMobileDevice) && (
+            <div className="dashboard-attendance-actions">
+              <div
+                className={`attendance-status-pill ${isClockedInToday ? 'status-working' : 'status-not-clocked'
+                  }`}
+              >
+                <span className="status-dot"></span>
+                {isClockedInToday ? 'Working' : 'Not Clocked In'}
+              </div>
+
               <button
+                className={`attendance-action-btn clock-in-btn ${isClockedInToday ? 'action-disabled' : ''
+                  }`}
                 onClick={handleClockIn}
                 disabled={clockLoading || isClockedInToday}
                 title="Clock In"
-                style={{
-                  display: 'flex', alignItems: 'center', gap: 7, border: 'none', borderRadius: 22,
-                  padding: '10px 18px', fontSize: 13.5, fontWeight: 700,
-                  background: isClockedInToday ? 'rgba(255,255,255,0.15)' : '#fff',
-                  color: isClockedInToday ? 'rgba(255,255,255,0.6)' : '#065f46',
-                  cursor: (clockLoading || isClockedInToday) ? 'not-allowed' : 'pointer',
-                  opacity: clockLoading ? 0.7 : 1,
-                }}
               >
-                <FaSignInAlt size={14} /> Clock In
+                <FaSignInAlt size={14} />
+                <span>{clockLoading ? 'Processing...' : 'Clock In'}</span>
               </button>
+
               <button
+                className={`attendance-action-btn clock-out-btn ${!isClockedInToday ? 'action-disabled' : ''
+                  }`}
                 onClick={() => setShowClockOutConfirm(true)}
                 disabled={clockLoading || !isClockedInToday}
                 title="Clock Out"
-                style={{
-                  display: 'flex', alignItems: 'center', gap: 7, border: 'none', borderRadius: 22,
-                  padding: '10px 18px', fontSize: 13.5, fontWeight: 700,
-                  background: !isClockedInToday ? 'rgba(255,255,255,0.15)' : '#fff',
-                  color: !isClockedInToday ? 'rgba(255,255,255,0.6)' : '#b45309',
-                  cursor: (clockLoading || !isClockedInToday) ? 'not-allowed' : 'pointer',
-                  opacity: clockLoading ? 0.7 : 1,
-                }}
               >
-                <FaSignOutAlt size={14} /> Clock Out
+                <FaSignOutAlt size={14} />
+                <span>Clock Out</span>
               </button>
-            </>
+            </div>
           )
         }
       />
@@ -1179,24 +1182,71 @@ const EmployeeDashboard = () => {
       )} */}
 
       {/* Statistics Cards - First Row with 3 Cards */}
-      <Row className="mb-4 g-2 g-md-3">
+      <Row className="mb-4 g-3">
         {/* Leave Balance Card */}
         <Col xs={12} sm={6} md={4}>
-          <Card className="border-0 shadow-sm h-100">
-            <Card.Body className="p-3">
-              <div className="d-flex justify-content-between align-items-start">
+          <Card className="border-0 h-100" style={{
+            border: '1px solid #E5E7EB',
+            borderRadius: '14px',
+            boxShadow: '0 2px 8px rgba(15, 23, 42, 0.05)'
+          }}>
+            <Card.Body className="p-4">
+              <div className="d-flex align-items-start gap-2">
+
+                {/* Leave Balance Icon */}
+                <div
+                  className="d-flex align-items-center justify-content-center flex-shrink-0"
+                  style={{
+                    width: '32px',
+                    height: '32px',
+                    borderRadius: '8px',
+                    color: '#374151',
+                    marginTop: '-8px'
+                  }}
+                >
+                  <FaUmbrellaBeach size={14} />
+                </div>
+
+                {/* Leave Balance Content */}
                 <div className="overflow-hidden">
-                  <p className="text-muted small mb-1 text-truncate">Leave Balance</p>
-                  <h4 className="mb-0 fw-bold" style={{ color: '#1F4E79' }}>
-                    {leaveBalance.is_probation_complete ? parseFloat(leaveBalance.available).toFixed(1) : parseFloat(leaveBalance.total_accrued).toFixed(1)}
+                  <p
+                    className="mb-2"
+                    style={{
+                      color: '#6B7280',
+                      fontSize: '12px',
+                      fontWeight: 600,
+                      letterSpacing: '0.02em'
+                    }}
+                  >
+                    Leave Balance
+                  </p>
+
+                  <h4
+                    className="mb-1 fw-bold"
+                    style={{
+                      color: '#111827',
+                      fontSize: '26px',
+                      lineHeight: 1.2
+                    }}
+                  >
+                    {leaveBalance.is_probation_complete
+                      ? parseFloat(leaveBalance.available).toFixed(1)
+                      : parseFloat(leaveBalance.total_accrued).toFixed(1)}
                   </h4>
-                  <small className="text-muted text-truncate d-block">
-                    {leaveBalance.is_probation_complete ? `Used: ${parseFloat(leaveBalance.used).toFixed(1)} | Pending: ${parseFloat(leaveBalance.pending).toFixed(1)}` : 'Earned (usable after probation)'}
+
+                  <small
+                    className="d-block text-truncate"
+                    style={{
+                      color: '#9CA3AF',
+                      fontSize: '11px'
+                    }}
+                  >
+                    {leaveBalance.is_probation_complete
+                      ? `Used: ${parseFloat(leaveBalance.used).toFixed(1)} | Pending: ${parseFloat(leaveBalance.pending).toFixed(1)}`
+                      : 'Earned (usable after probation)'}
                   </small>
                 </div>
-                <div className="p-3 rounded-circle flex-shrink-0" style={{ background: '#EAF1F7' }}>
-                  <FaUmbrellaBeach style={{ color: '#1F4E79' }} size={24} />
-                </div>
+
               </div>
             </Card.Body>
           </Card>
@@ -1204,19 +1254,66 @@ const EmployeeDashboard = () => {
 
         {/* Present Days Card */}
         <Col xs={12} sm={6} md={4}>
-          <Card className="border-0 shadow-sm h-100">
-            <Card.Body className="p-3">
-              <div className="d-flex justify-content-between align-items-start">
+          <Card className="border-0 h-100" style={{
+            border: '1px solid #E5E7EB',
+            borderRadius: '14px',
+            boxShadow: '0 2px 8px rgba(15, 23, 42, 0.05)'
+          }}>
+            <Card.Body className="p-4">
+              <div className="d-flex align-items-start gap-2">
+
+                {/* Present Days Icon */}
+                <div
+                  className="d-flex align-items-center justify-content-center flex-shrink-0"
+                  style={{
+                    width: '32px',
+                    height: '32px',
+                    borderRadius: '8px',
+                    color: '#374151',
+                    marginTop: '-8px'
+                  }}
+                >
+                  <FaCalendarCheck size={14} />
+                </div>
+
+                {/* Present Days Content */}
                 <div className="overflow-hidden">
-                  <p className="text-muted small mb-1 text-truncate">Present Days</p>
-                  <h4 className="mb-0 fw-bold" style={{ color: '#1F4E79' }}>{stats.presentDays || 0}</h4>
-                  <small className="text-muted text-truncate d-block">
-                    Absent: <span className="text-danger fw-semibold">{stats.absentDays || 0}</span>
+                  <p
+                    className="mb-2"
+                    style={{
+                      color: '#6B7280',
+                      fontSize: '12px',
+                      fontWeight: 600,
+                      letterSpacing: '0.02em'
+                    }}
+                  >
+                    Present Days
+                  </p>
+
+                  <h4
+                    className="mb-1 fw-bold"
+                    style={{
+                      color: '#111827',
+                      fontSize: '26px',
+                      lineHeight: 1.2
+                    }}
+                  >
+                    {stats.presentDays || 0}
+                  </h4>
+
+                  <small
+                    className="d-block"
+                    style={{
+                      color: '#9CA3AF',
+                      fontSize: '11px'
+                    }}
+                  >
+                    Absent: <span style={{ color: '#6B7280', fontWeight: 600 }}>
+                      {stats.absentDays || 0}
+                    </span>
                   </small>
                 </div>
-                <div className="p-3 rounded-circle flex-shrink-0" style={{ background: '#EAF1F7' }}>
-                  <FaCheckCircle style={{ color: '#1F4E79' }} size={24} />
-                </div>
+
               </div>
             </Card.Body>
           </Card>
@@ -1224,23 +1321,69 @@ const EmployeeDashboard = () => {
 
         {/* Comp-Off Balance Card */}
         <Col xs={12} sm={6} md={4}>
-          <Card className="border-0 shadow-sm h-100">
-            <Card.Body className="p-3">
-              <div className="d-flex justify-content-between align-items-start">
+          <Card className="border-0 h-100" style={{
+            border: '1px solid #E5E7EB',
+            borderRadius: '14px',
+            boxShadow: '0 2px 8px rgba(15, 23, 42, 0.05)'
+          }}>
+            <Card.Body className="p-4">
+              <div className="d-flex align-items-start gap-2">
+
+                {/* Comp-Off Balance Icon */}
+                <div
+                  className="d-flex align-items-center justify-content-center flex-shrink-0"
+                  style={{
+                    width: '32px',
+                    height: '32px',
+                    borderRadius: '8px',
+                    color: '#374151',
+                    marginTop: '-8px'
+                  }}
+                >
+                  <FaBusinessTime size={14} />
+                </div>
+
+                {/* Comp-Off Balance Content */}
                 <div className="overflow-hidden">
-                  <p className="text-muted small mb-1 text-truncate">Comp-Off Balance</p>
-                  <h4 className="mb-0 fw-bold" style={{ color: '#1F4E79' }}>{leaveBalance.comp_off_balance || 0}</h4>
-                  <small className="text-muted text-truncate d-block">Earned on holidays</small>
+                  <p
+                    className="mb-2"
+                    style={{
+                      color: '#6B7280',
+                      fontSize: '12px',
+                      fontWeight: 600,
+                      letterSpacing: '0.02em'
+                    }}
+                  >
+                    Comp-Off Balance
+                  </p>
+
+                  <h4
+                    className="mb-1 fw-bold"
+                    style={{
+                      color: '#111827',
+                      fontSize: '26px',
+                      lineHeight: 1.2
+                    }}
+                  >
+                    {leaveBalance.comp_off_balance || 0}
+                  </h4>
+
+                  <small
+                    className="d-block"
+                    style={{
+                      color: '#9CA3AF',
+                      fontSize: '11px'
+                    }}
+                  >
+                    Earned on holidays
+                  </small>
                 </div>
-                <div className="p-3 rounded-circle flex-shrink-0" style={{ background: '#EAF1F7' }}>
-                  <FaTrophy style={{ color: '#1F4E79' }} size={24} />
-                </div>
+
               </div>
             </Card.Body>
           </Card>
         </Col>
       </Row>
-
       {/* ── Unified Performance Ratings Card ── */}
       <Row className="mb-4">
         <Col xs={12}>
@@ -1271,7 +1414,7 @@ const EmployeeDashboard = () => {
                   <div style={{ padding: '12px 20px', flex: '1 1 auto', borderRight: '1px solid #f1f5f9' }}>
                     <div style={{ fontSize: 11, color: '#64748b', marginBottom: 4 }}>Overall Rating</div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                      {[1,2,3,4,5].map(n => (
+                      {[1, 2, 3, 4, 5].map(n => (
                         <FaStar key={n} size={13} style={{ color: n <= Math.round(avg) ? '#eab308' : '#e2e8f0' }} />
                       ))}
                       <span style={{ fontSize: 14, fontWeight: 700, color: '#0f172a' }}>{avg.toFixed(1)} / 5</span>
@@ -1336,7 +1479,7 @@ const EmployeeDashboard = () => {
                           <div style={{ fontSize: 11, color: '#64748b', marginBottom: 5 }}>{r.reviewer_name}</div>
                           {/* Stars + label */}
                           <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginBottom: r.remark ? 6 : 0, flexWrap: 'wrap' }}>
-                            {[1,2,3,4,5].map(n => (
+                            {[1, 2, 3, 4, 5].map(n => (
                               <FaStar key={n} size={14} style={{ color: n <= r.rating ? color : '#e2e8f0' }} />
                             ))}
                             <span style={{ fontSize: 12, fontWeight: 600, color, marginLeft: 4 }}>
@@ -1498,16 +1641,16 @@ const EmployeeDashboard = () => {
 
             <Card.Body className="p-3 pt-1">
               {(() => {
-                const used      = parseFloat(leaveBalance.used) || 0;
-                const pending   = parseFloat(leaveBalance.pending) || 0;
-                const total     = parseFloat(leaveBalance.total_accrued) || 0;
+                const used = parseFloat(leaveBalance.used) || 0;
+                const pending = parseFloat(leaveBalance.pending) || 0;
+                const total = parseFloat(leaveBalance.total_accrued) || 0;
                 const available = Math.max(0, total - used - pending);
                 const pct = (v) => total > 0 ? ((v / total) * 100).toFixed(0) : 0;
 
                 const segments = [
-                  { label: 'Leave Used',        value: used,      pct: pct(used),      color: '#C53030', bg: '#FEF2F2', icon: 'Used' },
-                  { label: 'Remaining Leaves',  value: available, pct: pct(available), color: '#168A70', bg: '#ECFDF3', icon: 'Available' },
-                  { label: 'Pending Approval',  value: pending,   pct: pct(pending),   color: '#C05621', bg: '#FFF7ED', icon: 'Pending' },
+                  { label: 'Leave Used', value: used, pct: pct(used), color: '#C53030', bg: '#FEF2F2', icon: 'Used' },
+                  { label: 'Remaining Leaves', value: available, pct: pct(available), color: '#168A70', bg: '#ECFDF3', icon: 'Available' },
+                  { label: 'Pending Approval', value: pending, pct: pct(pending), color: '#C05621', bg: '#FFF7ED', icon: 'Pending' },
                 ];
 
                 return (
@@ -1532,7 +1675,7 @@ const EmployeeDashboard = () => {
                               callbacks: {
                                 label: (ctx) => {
                                   const v = ctx.raw;
-                                  return total > 0 ? ` ${v} days (${((v/total)*100).toFixed(0)}%)` : ' No data';
+                                  return total > 0 ? ` ${v} days (${((v / total) * 100).toFixed(0)}%)` : ' No data';
                                 }
                               }
                             }
@@ -1631,7 +1774,7 @@ const EmployeeDashboard = () => {
             </Card>
           )} */}
 
-          {/* <Card className="border-0 shadow-sm">
+        {/* <Card className="border-0 shadow-sm">
             <Card.Header className="bg-white py-2 py-md-3">
               <h6 className="mb-0 small">
                 <FaBell className="me-2 text-primary" />
@@ -1726,7 +1869,7 @@ const EmployeeDashboard = () => {
                       </div>
                       <div style={{ fontSize: 11, color: '#64748b', marginBottom: 6 }}>{r.reviewer_name}</div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginBottom: r.remark ? 6 : 0, flexWrap: 'wrap' }}>
-                        {[1,2,3,4,5].map(n => (
+                        {[1, 2, 3, 4, 5].map(n => (
                           <FaStar key={n} size={14} style={{ color: n <= r.rating ? color : '#e2e8f0' }} />
                         ))}
                         <span style={{ fontSize: 12, fontWeight: 600, color, marginLeft: 4 }}>
