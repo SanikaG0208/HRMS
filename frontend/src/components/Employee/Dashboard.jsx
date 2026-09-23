@@ -1387,15 +1387,50 @@ const EmployeeDashboard = () => {
       {/* ── Unified Performance Ratings Card ── */}
       <Row className="mb-4">
         <Col xs={12}>
-          <Card className="border-0 shadow-sm" style={{ borderRadius: 14, overflow: 'hidden' }}>
+          <Card
+            className="border-0 h-100"
+            style={{
+              borderRadius: '16px',
+              overflow: 'hidden',
+              boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
+              background: '#FFFFFF'
+            }}
+          >
             {/* Card header */}
-            <div style={{ padding: '14px 20px 12px', borderBottom: '1px solid #f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <FaStar size={15} style={{ color: '#eab308' }} />
-                <span style={{ fontWeight: 700, fontSize: 15, color: '#0f172a' }}>Performance Ratings</span>
-                {allRatings.length > 0 && (
-                  <Badge bg="secondary" pill style={{ fontSize: 10 }}>{allRatings.length}</Badge>
-                )}
+            <div style={{ padding: '14px 20px 12px', borderBottom: '1px solid #E5E7EB', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div className="d-flex align-items-center gap-2">
+                <div
+                  className="d-flex align-items-center justify-content-center"
+                  style={{
+                    width: '32px',
+                    height: '32px',
+                    borderRadius: '8px',
+                    background: '#F3F4F6'
+                  }}
+                >
+                  <FaStar size={14} style={{ color: '#374151' }} />
+                </div>
+
+                <div>
+                  <div
+                    style={{
+                      fontSize: '14px',
+                      fontWeight: 700,
+                      color: '#111827'
+                    }}
+                  >
+                    Performance Ratings
+                  </div>
+
+                  <div
+                    style={{
+                      fontSize: '11px',
+                      color: '#9CA3AF'
+                    }}
+                  >
+                    Monthly employee evaluations
+                  </div>
+                </div>
               </div>
               {allRatings.length > 5 && (
                 <Button variant="link" size="sm" className="p-0 text-decoration-none small" onClick={() => setShowRatingHistory(true)}>
@@ -1408,21 +1443,21 @@ const EmployeeDashboard = () => {
             {allRatings.length > 0 && (() => {
               const avg = allRatings.reduce((s, r) => s + r.rating, 0) / allRatings.length;
               const latest = allRatings[0];
-              const latestColor = PERF_COLORS[latest.rating] || '#94a3b8';
+              const latestColor = '#374151';
               return (
                 <div style={{ display: 'flex', gap: 0, background: '#f8fafc', borderBottom: '1px solid #f1f5f9', flexWrap: 'wrap' }}>
                   <div style={{ padding: '12px 20px', flex: '1 1 auto', borderRight: '1px solid #f1f5f9' }}>
                     <div style={{ fontSize: 11, color: '#64748b', marginBottom: 4 }}>Overall Rating</div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                       {[1, 2, 3, 4, 5].map(n => (
-                        <FaStar key={n} size={13} style={{ color: n <= Math.round(avg) ? '#eab308' : '#e2e8f0' }} />
+                        <FaStar key={n} size={13} style={{ color: n <= Math.round(avg) ? '#374151' : '#E5E7EB' }} />
                       ))}
                       <span style={{ fontSize: 14, fontWeight: 700, color: '#0f172a' }}>{avg.toFixed(1)} / 5</span>
                     </div>
                   </div>
                   <div style={{ padding: '12px 20px', flex: '0 0 auto', borderRight: '1px solid #f1f5f9', textAlign: 'center' }}>
                     <div style={{ fontSize: 11, color: '#64748b', marginBottom: 4 }}>Total Ratings</div>
-                    <div style={{ fontSize: 20, fontWeight: 700, color: '#2563EB' }}>{allRatings.length}</div>
+                    <div style={{ fontSize: 20, fontWeight: 700, color: '#111827' }}>{allRatings.length}</div>
                   </div>
                   <div style={{ padding: '12px 20px', flex: '1 1 auto' }}>
                     <div style={{ fontSize: 11, color: '#64748b', marginBottom: 4 }}>Latest Status</div>
@@ -1490,7 +1525,7 @@ const EmployeeDashboard = () => {
                           {r.remark && (
                             <div style={{
                               fontSize: 12, color: '#475569', fontStyle: 'italic',
-                              background: '#f8fafc', borderRadius: 6, padding: '6px 10px',
+                              background: '#FAFAFA', borderRadius: 6, padding: '6px 10px',
                               borderLeft: `3px solid ${color}`, marginTop: 4,
                             }}>
                               "{r.remark}"
@@ -1853,7 +1888,7 @@ const EmployeeDashboard = () => {
                     alignItems: 'flex-start',
                   }}>
                     <div style={{
-                      width: 40, height: 40, borderRadius: '50%', flexShrink: 0,
+                      width: 40, height: 40, borderRadius: '10px', flexShrink: 0,
                       background: avatarBg, color: '#fff',
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
                       fontWeight: 700, fontSize: 14,

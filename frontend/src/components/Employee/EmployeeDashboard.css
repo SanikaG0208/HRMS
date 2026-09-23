@@ -2401,3 +2401,11 @@
     background: #f1f5f9;
     color: var(--hrms-text);
 }
+
+.rating-item {
+  transition: all 0.2s ease;
+}
+
+.rating-item:hover {
+  background: #F9FAFB;
+}
