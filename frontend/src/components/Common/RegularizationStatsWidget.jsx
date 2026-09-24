@@ -53,10 +53,10 @@ export default function RegularizationStatsWidget({ managerId } = {}) {
         </div>
       ) : (
         <div style={{ display: 'flex', gap: 6, marginTop: 12, flexWrap: 'wrap' }}>
-          <Tile label="Pending" value={stats.pending} color={QA.warning} />
-          <Tile label="Approved" value={stats.approved} color={QA.success} />
-          <Tile label="Rejected" value={stats.rejected} color={QA.danger} />
-        </div>
+  <Tile label="Pending" value={stats.pending} color="#374151" />
+  <Tile label="Approved" value={stats.approved} color="#374151" />
+  <Tile label="Rejected" value={stats.rejected} color="#374151" />
+</div>
       )}
     </div>
   );

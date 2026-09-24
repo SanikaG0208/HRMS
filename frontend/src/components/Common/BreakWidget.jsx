@@ -51,9 +51,6 @@ const fmtHMS = (totalSeconds) => {
     return [h, m, sec].map(v => String(v).padStart(2, '0')).join(':');
 };
 
-// ── Shared centered confirmation popup — same visual pattern as the Clock
-// Out confirmation (blurred backdrop, centered card, icon/title/message,
-// two buttons) so every break start/end action confirms the same way.
 function BreakConfirmModal({ icon = '☕', title, message, confirmLabel = 'Yes', confirmColor = '#f97316', busy = false, onConfirm, onCancel }) {
     return (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.35)', backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -185,11 +182,11 @@ function BreakDropdown({ activeBreak, usedTypes, canInteract, acting, error, onS
                             );
                         })}
                         <button
-    className="break-type-modal-cancel"
-    onClick={() => setOpen(false)}
->
-    Cancel
-</button>
+                            className="break-type-modal-cancel"
+                            onClick={() => setOpen(false)}
+                        >
+                            Cancel
+                        </button>
                     </div>
                 </div>
             )}
@@ -325,23 +322,53 @@ function SimpleBreakControl({ activeBreak, canInteract, acting, error, totalSeco
             )}
 
             <div style={{
-                marginTop: 4, background: 'rgba(255,255,255,0.14)', border: '1px solid rgba(255,255,255,0.25)',
-                borderRadius: 10, padding: '2px 4px 4px', textAlign: 'center', minWidth: 180,
+                marginTop: 4,
+                background: '#F9FAFB',
+                border: '1px solid #E5E7EB',
+                borderRadius: 10,
+                padding: '6px 8px 7px',
+                textAlign: 'center',
+                minWidth: 180,
             }}>
-                <div style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.8)', textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                <div style={{
+                    fontSize: 10,
+                    fontWeight: 700,
+                    color: '#6B7280',
+                    textTransform: 'uppercase',
+                    letterSpacing: 0.5
+                }}>
                     Today's Break
                 </div>
-                <div style={{ fontSize: 14, fontWeight: 800, color: '#fff', marginTop: 1 }}>
+
+                <div style={{
+                    fontSize: 14,
+                    fontWeight: 800,
+                    color: '#1F2937',
+                    marginTop: 1
+                }}>
                     Total Break Time: {fmtHMS(totalSeconds)}
                 </div>
+
                 {completedCount > 0 && (
-                    <button onClick={() => setShowHistory(true)} style={{
-                        display: 'inline-flex', alignItems: 'center', gap: 4, marginTop: 4,
-                        background: 'rgba(255,255,255,0.18)', border: '1px solid rgba(255,255,255,0.3)',
-                        borderRadius: 8, padding: '3px 10px', fontSize: 10, fontWeight: 700,
-                        color: '#fff', cursor: 'pointer',
-                    }}>
-                        <History size={11} /> View History ({completedCount})
+                    <button
+                        onClick={() => setShowHistory(true)}
+                        style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: 4,
+                            marginTop: 4,
+                            background: '#F3F4F6',
+                            border: '1px solid #D1D5DB',
+                            borderRadius: 8,
+                            padding: '3px 10px',
+                            fontSize: 10,
+                            fontWeight: 700,
+                            color: '#374151',
+                            cursor: 'pointer',
+                        }}
+                    >
+                        <History size={11} />
+                        View History ({completedCount})
                     </button>
                 )}
             </div>
@@ -406,9 +433,13 @@ function MyBreakHistory({ breaks }) {
         <div style={{ marginTop: 6, display: 'flex', flexWrap: 'wrap', gap: 4, justifyContent: 'center' }}>
             {done.map(b => (
                 <span key={b.id} style={{
-                    fontSize: 10, background: 'rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.75)',
-                    borderRadius: 10, padding: '2px 8px', whiteSpace: 'nowrap',
-                    border: '1px solid rgba(255,255,255,0.15)',
+                    fontSize: 10,
+                    background: '#F3F4F6',
+                    color: '#374151',
+                    borderRadius: 10,
+                    padding: '2px 8px',
+                    whiteSpace: 'nowrap',
+                    border: '1px solid #D1D5DB',
                 }}>
                     {breakEmoji(b.break_type)} {fmtTime(b.break_start)} → {fmtTime(b.break_end)}
                     {b.break_duration_minutes ? ` · ${b.break_duration_minutes}m` : ''}
@@ -506,6 +537,7 @@ function TeamPanel({ todayBreaks, loading }) {
                     {completed.map(b => <EmpChip key={b.id} b={b} live={false} />)}
                 </div>
             )}
+
         </div>
     );
 }

@@ -1,4 +1,4 @@
-// src/components/Employee/Dashboard.jsx
+
 import React, { useState, useEffect } from 'react';
 import { Row, Col, Card, Table, Badge, Spinner, Alert, Button, Modal, ButtonGroup, Form } from 'react-bootstrap';
 import {
@@ -91,9 +91,6 @@ const EmployeeDashboard = () => {
   const [showClockOutConfirm, setShowClockOutConfirm] = useState(false);
   const [networkBlocked, setNetworkBlocked] = useState(false);
 
-  // Tickets the employee raised that the team has marked resolved and is now waiting on
-  // THEM to confirm (status 'resolved_pending') — surfaced as a popup on dashboard load
-  // instead of only showing up if they happen to click into /tickets on their own.
   const [pendingConfirmTickets, setPendingConfirmTickets] = useState([]);
   const [showTicketConfirmModal, setShowTicketConfirmModal] = useState(false);
   const [ticketActionLoading, setTicketActionLoading] = useState(false);
@@ -113,10 +110,6 @@ const EmployeeDashboard = () => {
     return `${ist.getUTCFullYear()}-${p(ist.getUTCMonth() + 1)}-${p(ist.getUTCDate())} ${p(ist.getUTCHours())}:${p(ist.getUTCMinutes())}:${p(ist.getUTCSeconds())}`;
   };
 
-  // Housekeeper-only: proactively hide the clock in/out button (instead of letting them
-  // click it and hit a 403) when the device isn't on an allowlisted network. Polled so a
-  // Housekeeper who switches off office Wi-Fi mid-session sees the button disappear without
-  // needing to refresh — see backend/utils/housekeeperNetworkGate.js for the server-side gate.
   useEffect(() => {
     if (user?.role !== 'housekeeper') return;
 
@@ -274,24 +267,20 @@ const EmployeeDashboard = () => {
     compOffEarned: 0
   });
 
-  // Unified performance ratings (merged from employee_ratings + performance_reviews)
   const [allRatings, setAllRatings] = useState([]);
   const [showRatingHistory, setShowRatingHistory] = useState(false);
 
-  // Current-month deductions
   const [myDeductions, setMyDeductions] = useState([]);
 
-  // Chart view toggle: 'weekly' | 'monthly'
   const [chartView, setChartView] = useState('weekly');
 
-  // Weekly chart data
   const [attendanceChartData, setAttendanceChartData] = useState({
     labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
     datasets: [{
       label: 'Present Days',
       data: [0, 0, 0, 0, 0, 0, 0],
-      backgroundColor: Array(5).fill('rgba(59,130,246,0.75)').concat(Array(2).fill('rgba(156,163,175,0.45)')),
-      borderColor: Array(5).fill('rgb(59,130,246)').concat(Array(2).fill('rgb(156,163,175)')),
+      backgroundColor: Array(5).fill('#6B7280').concat(Array(2).fill('#D1D5DB')),
+      borderColor: Array(5).fill('#6B7280').concat(Array(2).fill('#D1D5DB')),
       borderWidth: 0,
       borderRadius: 6,
       barPercentage: 0.6,
@@ -299,14 +288,13 @@ const EmployeeDashboard = () => {
     }]
   });
 
-  // Monthly chart data (Jan–Dec, hours per month)
   const [monthlyChartData, setMonthlyChartData] = useState({
     labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
     datasets: [{
       label: 'Total Working Hours',
       data: Array(12).fill(0),
-      backgroundColor: 'rgba(99,102,241,0.75)',
-      borderColor: 'rgb(99,102,241)',
+      backgroundColor: '#6B7280',
+      borderColor: '#6B7280',
       borderWidth: 0,
       borderRadius: 6,
       barPercentage: 0.6,
@@ -325,10 +313,8 @@ const EmployeeDashboard = () => {
     }]
   });
 
-  // Weekly off days (0 = Sunday, 6 = Saturday)
   const WEEKLY_OFF_DAYS = [0, 6];
 
-  // ── Rating helpers ──────────────────────────────────────────────────────────
   const PERF_LABELS = {
     5: 'Excellent Performer', 4: 'Very Good Performer', 3: 'Meets Expectations',
     2: 'Performance Improvement Plan (PIP)', 1: 'Termination Recommended',
@@ -363,7 +349,6 @@ const EmployeeDashboard = () => {
 
   const getRatingLabel = (r) => PERF_LABELS[r] || `${r}/5`;
 
-  // Used in the attendance header mini-stars
   const renderStars = (rating) => {
     const stars = [];
     const fullStars = Math.floor(rating);
@@ -379,10 +364,6 @@ const EmployeeDashboard = () => {
   useEffect(() => {
     if (!user?.employeeId) return;
 
-    // Instant paint from the last-known snapshot (if any) — the network fetch below still
-    // runs regardless, but the dashboard shows something immediately instead of a spinner
-    // while it does. Stale data is fine here; it gets silently replaced within a second or
-    // two as each real fetch resolves.
     const cached = loadDashboardCache(user.employeeId, 'employee');
     if (cached) {
       if (cached.employee !== undefined) setEmployee(cached.employee);
@@ -404,11 +385,6 @@ const EmployeeDashboard = () => {
     checkPendingTicketConfirmations();
   }, [user]);
 
-  // Fetch once on login/dashboard load — no polling, same convention as the other
-  // fetch-once-on-mount checks in NotificationContext/TicketBadge. GET /api/tickets has
-  // no server-side status filter, but for a regular employee the visible set is already
-  // scoped down to their own raised/assigned/department tickets (see visibleTicketsQuery
-  // in ticketRoutes.js), so filtering client-side here is cheap and needs no new endpoint.
   const checkPendingTicketConfirmations = async () => {
     try {
       const res = await axios.get(API_ENDPOINTS.TICKETS);
@@ -610,8 +586,6 @@ const EmployeeDashboard = () => {
   };
 
   const loadDashboardData = async ({ silent = false } = {}) => {
-    // silent=true means a cached snapshot is already on screen — skip the blocking
-    // spinner so the refresh happens invisibly behind the data the user already sees.
     if (!silent) setLoading(true);
     setError('');
 
@@ -643,12 +617,7 @@ const EmployeeDashboard = () => {
     showNotification('Dashboard refreshed!', 'success');
   };
 
-  // Snapshot the dashboard-defining state on every change so the next mount/login can
-  // paint from it instantly instead of waiting on the network (see the mount effect above).
   useEffect(() => {
-    // Guard against the very first render (before either cache-hydration or the real fetch
-    // has landed): employee is still its null default then, and saving at that instant
-    // would clobber a perfectly good cache with nothing, right after we just read it.
     if (!user?.employeeId || !employee) return;
     saveDashboardCache(user.employeeId, 'employee', {
       employee, leaveBalance, compOffHistory, leaveRequests, todayAttendance,
@@ -676,7 +645,6 @@ const EmployeeDashboard = () => {
       );
       setMyDeductions(res.data?.data || []);
     } catch {
-      // non-critical; silently ignore
     }
   };
 
@@ -847,7 +815,6 @@ const EmployeeDashboard = () => {
   };
 
   const updateAttendanceChart = () => {
-    // ── Weekly view ──────────────────────────────────────────────
     const hoursByDay = [0, 0, 0, 0, 0, 0, 0];
     const today = new Date();
     const dow = today.getDay();
@@ -870,8 +837,8 @@ const EmployeeDashboard = () => {
       datasets: [{
         label: 'Present Days',
         data: hoursByDay,
-        backgroundColor: Array(5).fill('rgba(59,130,246,0.75)').concat(Array(2).fill('rgba(156,163,175,0.45)')),
-        borderColor: Array(5).fill('rgb(59,130,246)').concat(Array(2).fill('rgb(156,163,175)')),
+        backgroundColor: Array(5).fill('#6B7280').concat(Array(2).fill('#D1D5DB')),
+        borderColor: Array(5).fill('#6B7280').concat(Array(2).fill('#D1D5DB')),
         borderWidth: 0,
         borderRadius: 6,
         barPercentage: 0.6,
@@ -879,7 +846,6 @@ const EmployeeDashboard = () => {
       }]
     });
 
-    // ── Monthly view (Jan–Dec, total hours per calendar month) ────
     const hoursByMonth = Array(12).fill(0);
     attendanceHistory.forEach(record => {
       if (!record.clock_in || !record.total_hours) return;
@@ -892,8 +858,8 @@ const EmployeeDashboard = () => {
       datasets: [{
         label: 'Total Working Hours',
         data: hoursByMonth,
-        backgroundColor: 'rgba(99,102,241,0.75)',
-        borderColor: 'rgb(99,102,241)',
+        backgroundColor: '#6B7280',
+        borderColor: '#6B7280',
         borderWidth: 0,
         borderRadius: 6,
         barPercentage: 0.6,
@@ -977,7 +943,6 @@ const EmployeeDashboard = () => {
     );
   }
 
-  // Show profile completion overlay when admin has enabled the toggle AND employee hasn't completed it
   if (
     !loading && employee &&
     employee.require_profile_completion === true &&
@@ -995,8 +960,6 @@ const EmployeeDashboard = () => {
     }
   }
 
-  // Same "currently clocked in" rule AttendanceCard.jsx uses (hasOpen) — kept in sync so the
-  // banner's separate Clock In/Clock Out buttons never disagree with the Time Today card below.
   const isClockedInToday = !!activeSession || (!!attendance?.clock_in && !attendance?.clock_out);
 
   return (
@@ -1056,7 +1019,6 @@ const EmployeeDashboard = () => {
         </Alert>
       )}
 
-      {/* Team-on-break panel — only visible to managers/admins */}
       <BreakWidget mode="team-panel" />
 
       <AnnouncementBanner />
@@ -1091,7 +1053,6 @@ const EmployeeDashboard = () => {
         }
       />
 
-      {/* Salary deduction notice */}
       {myDeductions.length > 0 && (() => {
         const total = myDeductions.reduce((s, d) => s + parseFloat(d.amount || 0), 0);
         return (
@@ -1181,214 +1142,11 @@ const EmployeeDashboard = () => {
         </Card>
       )} */}
 
-      {/* Statistics Cards - First Row with 3 Cards */}
-      <Row className="mb-4 g-3">
-        {/* Leave Balance Card */}
-        <Col xs={12} sm={6} md={4}>
-          <Card className="border-0 h-100" style={{
-            border: '1px solid #E5E7EB',
-            borderRadius: '14px',
-            boxShadow: '0 2px 8px rgba(15, 23, 42, 0.05)'
-          }}>
-            <Card.Body className="p-4">
-              <div className="d-flex align-items-start gap-2">
-
-                {/* Leave Balance Icon */}
-                <div
-                  className="d-flex align-items-center justify-content-center flex-shrink-0"
-                  style={{
-                    width: '32px',
-                    height: '32px',
-                    borderRadius: '8px',
-                    color: '#374151',
-                    marginTop: '-8px'
-                  }}
-                >
-                  <FaUmbrellaBeach size={14} />
-                </div>
-
-                {/* Leave Balance Content */}
-                <div className="overflow-hidden">
-                  <p
-                    className="mb-2"
-                    style={{
-                      color: '#6B7280',
-                      fontSize: '12px',
-                      fontWeight: 600,
-                      letterSpacing: '0.02em'
-                    }}
-                  >
-                    Leave Balance
-                  </p>
-
-                  <h4
-                    className="mb-1 fw-bold"
-                    style={{
-                      color: '#111827',
-                      fontSize: '26px',
-                      lineHeight: 1.2
-                    }}
-                  >
-                    {leaveBalance.is_probation_complete
-                      ? parseFloat(leaveBalance.available).toFixed(1)
-                      : parseFloat(leaveBalance.total_accrued).toFixed(1)}
-                  </h4>
-
-                  <small
-                    className="d-block text-truncate"
-                    style={{
-                      color: '#9CA3AF',
-                      fontSize: '11px'
-                    }}
-                  >
-                    {leaveBalance.is_probation_complete
-                      ? `Used: ${parseFloat(leaveBalance.used).toFixed(1)} | Pending: ${parseFloat(leaveBalance.pending).toFixed(1)}`
-                      : 'Earned (usable after probation)'}
-                  </small>
-                </div>
-
-              </div>
-            </Card.Body>
-          </Card>
-        </Col>
-
-        {/* Present Days Card */}
-        <Col xs={12} sm={6} md={4}>
-          <Card className="border-0 h-100" style={{
-            border: '1px solid #E5E7EB',
-            borderRadius: '14px',
-            boxShadow: '0 2px 8px rgba(15, 23, 42, 0.05)'
-          }}>
-            <Card.Body className="p-4">
-              <div className="d-flex align-items-start gap-2">
-
-                {/* Present Days Icon */}
-                <div
-                  className="d-flex align-items-center justify-content-center flex-shrink-0"
-                  style={{
-                    width: '32px',
-                    height: '32px',
-                    borderRadius: '8px',
-                    color: '#374151',
-                    marginTop: '-8px'
-                  }}
-                >
-                  <FaCalendarCheck size={14} />
-                </div>
-
-                {/* Present Days Content */}
-                <div className="overflow-hidden">
-                  <p
-                    className="mb-2"
-                    style={{
-                      color: '#6B7280',
-                      fontSize: '12px',
-                      fontWeight: 600,
-                      letterSpacing: '0.02em'
-                    }}
-                  >
-                    Present Days
-                  </p>
-
-                  <h4
-                    className="mb-1 fw-bold"
-                    style={{
-                      color: '#111827',
-                      fontSize: '26px',
-                      lineHeight: 1.2
-                    }}
-                  >
-                    {stats.presentDays || 0}
-                  </h4>
-
-                  <small
-                    className="d-block"
-                    style={{
-                      color: '#9CA3AF',
-                      fontSize: '11px'
-                    }}
-                  >
-                    Absent: <span style={{ color: '#6B7280', fontWeight: 600 }}>
-                      {stats.absentDays || 0}
-                    </span>
-                  </small>
-                </div>
-
-              </div>
-            </Card.Body>
-          </Card>
-        </Col>
-
-        {/* Comp-Off Balance Card */}
-        <Col xs={12} sm={6} md={4}>
-          <Card className="border-0 h-100" style={{
-            border: '1px solid #E5E7EB',
-            borderRadius: '14px',
-            boxShadow: '0 2px 8px rgba(15, 23, 42, 0.05)'
-          }}>
-            <Card.Body className="p-4">
-              <div className="d-flex align-items-start gap-2">
-
-                {/* Comp-Off Balance Icon */}
-                <div
-                  className="d-flex align-items-center justify-content-center flex-shrink-0"
-                  style={{
-                    width: '32px',
-                    height: '32px',
-                    borderRadius: '8px',
-                    color: '#374151',
-                    marginTop: '-8px'
-                  }}
-                >
-                  <FaBusinessTime size={14} />
-                </div>
-
-                {/* Comp-Off Balance Content */}
-                <div className="overflow-hidden">
-                  <p
-                    className="mb-2"
-                    style={{
-                      color: '#6B7280',
-                      fontSize: '12px',
-                      fontWeight: 600,
-                      letterSpacing: '0.02em'
-                    }}
-                  >
-                    Comp-Off Balance
-                  </p>
-
-                  <h4
-                    className="mb-1 fw-bold"
-                    style={{
-                      color: '#111827',
-                      fontSize: '26px',
-                      lineHeight: 1.2
-                    }}
-                  >
-                    {leaveBalance.comp_off_balance || 0}
-                  </h4>
-
-                  <small
-                    className="d-block"
-                    style={{
-                      color: '#9CA3AF',
-                      fontSize: '11px'
-                    }}
-                  >
-                    Earned on holidays
-                  </small>
-                </div>
-
-              </div>
-            </Card.Body>
-          </Card>
-        </Col>
-      </Row>
-      {/* ── Unified Performance Ratings Card ── */}
+      {/*── Employee Overview + Performance Ratings ──
       <Row className="mb-4">
         <Col xs={12}>
           <Card
-            className="border-0 h-100"
+            className="border-0"
             style={{
               borderRadius: '16px',
               overflow: 'hidden',
@@ -1396,321 +1154,1040 @@ const EmployeeDashboard = () => {
               background: '#FFFFFF'
             }}
           >
-            {/* Card header */}
-            <div style={{ padding: '14px 20px 12px', borderBottom: '1px solid #E5E7EB', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <div className="d-flex align-items-center gap-2">
+            <div
+              className="employee-overview-performance-layout"
+              style={{
+                display: 'grid',
+                alignItems: 'stretch'
+              }}
+            >
+
+              <div
+                style={{
+                  padding: '20px',
+                  borderRight: '1px solid #E5E7EB'
+                }}
+              >
                 <div
-                  className="d-flex align-items-center justify-content-center"
                   style={{
-                    width: '32px',
-                    height: '32px',
-                    borderRadius: '8px',
-                    background: '#F3F4F6'
+                    fontSize: '14px',
+                    fontWeight: 700,
+                    color: '#111827',
+                    marginBottom: '18px'
                   }}
                 >
-                  <FaStar size={14} style={{ color: '#374151' }} />
+                  Employee Overview
                 </div>
 
-                <div>
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'flex-start',
+                    gap: '12px',
+                    paddingBottom: '17px',
+                    borderBottom: '1px solid #F1F5F9'
+                  }}
+                >
                   <div
                     style={{
-                      fontSize: '14px',
-                      fontWeight: 700,
-                      color: '#111827'
+                      width: '32px',
+                      height: '32px',
+                      borderRadius: '8px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      flexShrink: 0,
+                      color: '#374151'
                     }}
                   >
-                    Performance Ratings
+                    <FaUmbrellaBeach size={14} />
                   </div>
 
+                  <div style={{ minWidth: 0 }}>
+                    <div
+                      style={{
+                        color: '#6B7280',
+                        fontSize: '11px',
+                        fontWeight: 600,
+                        marginBottom: '4px'
+                      }}
+                    >
+                      Leave Balance
+                    </div>
+
+                    <div
+                      style={{
+                        color: '#111827',
+                        fontSize: '24px',
+                        fontWeight: 700,
+                        lineHeight: 1.2
+                      }}
+                    >
+                      {leaveBalance.is_probation_complete
+                        ? parseFloat(leaveBalance.available).toFixed(1)
+                        : parseFloat(leaveBalance.total_accrued).toFixed(1)}
+                    </div>
+
+                    <div
+                      style={{
+                        color: '#9CA3AF',
+                        fontSize: '10px',
+                        marginTop: '4px'
+                      }}
+                    >
+                      {leaveBalance.is_probation_complete
+                        ? `Used: ${parseFloat(leaveBalance.used).toFixed(1)} | Pending: ${parseFloat(leaveBalance.pending).toFixed(1)}`
+                        : 'Earned (usable after probation)'}
+                    </div>
+                  </div>
+                </div>
+
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'flex-start',
+                    gap: '12px',
+                    padding: '17px 0',
+                    borderBottom: '1px solid #F1F5F9'
+                  }}
+                >
                   <div
                     style={{
-                      fontSize: '11px',
-                      color: '#9CA3AF'
+                      width: '32px',
+                      height: '32px',
+                      borderRadius: '8px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      flexShrink: 0,
+                      color: '#374151'
                     }}
                   >
-                    Monthly employee evaluations
+                    <FaCalendarCheck size={14} />
+                  </div>
+
+                  <div style={{ minWidth: 0 }}>
+                    <div
+                      style={{
+                        color: '#6B7280',
+                        fontSize: '11px',
+                        fontWeight: 600,
+                        marginBottom: '4px'
+                      }}
+                    >
+                      Present Days
+                    </div>
+
+                    <div
+                      style={{
+                        color: '#111827',
+                        fontSize: '24px',
+                        fontWeight: 700,
+                        lineHeight: 1.2
+                      }}
+                    >
+                      {stats.presentDays || 0}
+                    </div>
+
+                    <div
+                      style={{
+                        color: '#9CA3AF',
+                        fontSize: '10px',
+                        marginTop: '4px'
+                      }}
+                    >
+                      Absent:{' '}
+                      <span
+                        style={{
+                          color: '#6B7280',
+                          fontWeight: 600
+                        }}
+                      >
+                        {stats.absentDays || 0}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'flex-start',
+                    gap: '12px',
+                    paddingTop: '17px'
+                  }}
+                >
+                  <div
+                    style={{
+                      width: '32px',
+                      height: '32px',
+                      borderRadius: '8px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      flexShrink: 0,
+                      color: '#374151'
+                    }}
+                  >
+                    <FaBusinessTime size={14} />
+                  </div>
+
+                  <div style={{ minWidth: 0 }}>
+                    <div
+                      style={{
+                        color: '#6B7280',
+                        fontSize: '11px',
+                        fontWeight: 600,
+                        marginBottom: '4px'
+                      }}
+                    >
+                      Comp-Off Balance
+                    </div>
+
+                    <div
+                      style={{
+                        color: '#111827',
+                        fontSize: '24px',
+                        fontWeight: 700,
+                        lineHeight: 1.2
+                      }}
+                    >
+                      {leaveBalance.comp_off_balance || 0}
+                    </div>
+
+                    <div
+                      style={{
+                        color: '#9CA3AF',
+                        fontSize: '10px',
+                        marginTop: '4px'
+                      }}
+                    >
+                      Earned on holidays
+                    </div>
                   </div>
                 </div>
               </div>
-              {allRatings.length > 5 && (
-                <Button variant="link" size="sm" className="p-0 text-decoration-none small" onClick={() => setShowRatingHistory(true)}>
-                  View Full History <FaArrowRight size={10} />
-                </Button>
-              )}
-            </div>
-
-            {/* Summary row */}
-            {allRatings.length > 0 && (() => {
-              const avg = allRatings.reduce((s, r) => s + r.rating, 0) / allRatings.length;
-              const latest = allRatings[0];
-              const latestColor = '#374151';
-              return (
-                <div style={{ display: 'flex', gap: 0, background: '#f8fafc', borderBottom: '1px solid #f1f5f9', flexWrap: 'wrap' }}>
-                  <div style={{ padding: '12px 20px', flex: '1 1 auto', borderRight: '1px solid #f1f5f9' }}>
-                    <div style={{ fontSize: 11, color: '#64748b', marginBottom: 4 }}>Overall Rating</div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                      {[1, 2, 3, 4, 5].map(n => (
-                        <FaStar key={n} size={13} style={{ color: n <= Math.round(avg) ? '#374151' : '#E5E7EB' }} />
-                      ))}
-                      <span style={{ fontSize: 14, fontWeight: 700, color: '#0f172a' }}>{avg.toFixed(1)} / 5</span>
+              <div
+                style={{
+                  minWidth: 0,
+                  background: '#FFFFFF'
+                }}
+              >
+                <div
+                  style={{
+                    padding: '14px 20px 12px',
+                    borderBottom: '1px solid #E5E7EB',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between'
+                  }}
+                >
+                  <div className="d-flex align-items-center gap-2">
+                    <div
+                      className="d-flex align-items-center justify-content-center"
+                      style={{
+                        width: '32px',
+                        height: '32px',
+                        borderRadius: '8px',
+                        background: '#F3F4F6'
+                      }}
+                    >
+                      <FaStar
+                        size={14}
+                        style={{ color: '#374151' }}
+                      />
                     </div>
-                  </div>
-                  <div style={{ padding: '12px 20px', flex: '0 0 auto', borderRight: '1px solid #f1f5f9', textAlign: 'center' }}>
-                    <div style={{ fontSize: 11, color: '#64748b', marginBottom: 4 }}>Total Ratings</div>
-                    <div style={{ fontSize: 20, fontWeight: 700, color: '#111827' }}>{allRatings.length}</div>
-                  </div>
-                  <div style={{ padding: '12px 20px', flex: '1 1 auto' }}>
-                    <div style={{ fontSize: 11, color: '#64748b', marginBottom: 4 }}>Latest Status</div>
-                    <span style={{ fontSize: 12, fontWeight: 600, color: latestColor }}>
-                      {latest.label || getRatingLabel(latest.rating)}
-                    </span>
-                  </div>
-                </div>
-              );
-            })()}
 
-            <Card.Body className="p-0">
-              {allRatings.length === 0 ? (
-                <div style={{ padding: '36px 20px', textAlign: 'center' }}>
-                  <FaStar size={40} style={{ color: '#e2e8f0', marginBottom: 12 }} />
-                  <div style={{ fontWeight: 600, fontSize: 13, color: '#64748b' }}>No Performance Ratings Yet</div>
-                  <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 4 }}>
-                    Your manager or admin will rate your performance here.
-                  </div>
-                </div>
-              ) : (
-                <div>
-                  {allRatings.slice(0, 5).map((r, idx) => {
-                    const color = PERF_COLORS[r.rating] || '#94a3b8';
-                    const initials = getNameInitials(r.reviewer_name);
-                    const avatarBg = getRatingAvatarColor(r.reviewer_role);
-                    return (
-                      <div key={r.id || idx} style={{
-                        display: 'flex', gap: 14, padding: '14px 20px',
-                        borderBottom: idx < Math.min(allRatings.length, 5) - 1 ? '1px solid #f1f5f9' : 'none',
-                        alignItems: 'flex-start',
-                      }}>
-                        {/* Reviewer avatar */}
-                        <div style={{
-                          width: 38, height: 38, borderRadius: '50%', flexShrink: 0,
-                          background: avatarBg, color: '#fff',
-                          display: 'flex', alignItems: 'center', justifyContent: 'center',
-                          fontWeight: 700, fontSize: 13,
-                        }}>
-                          {initials}
-                        </div>
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                          {/* Reviewer role label + date */}
-                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 4, marginBottom: 4 }}>
-                            <span style={{ fontWeight: 600, fontSize: 13, color: '#0f172a' }}>
-                              {getRoleRatedText(r.reviewer_role)}
-                            </span>
-                            <span style={{ fontSize: 11, color: '#94a3b8' }}>
-                              {r.month_name} {r.year}
-                              {r.date ? ` · ${fmtRatingDate(r.date)}` : ''}
-                            </span>
-                          </div>
-                          {/* Reviewer name */}
-                          <div style={{ fontSize: 11, color: '#64748b', marginBottom: 5 }}>{r.reviewer_name}</div>
-                          {/* Stars + label */}
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginBottom: r.remark ? 6 : 0, flexWrap: 'wrap' }}>
-                            {[1, 2, 3, 4, 5].map(n => (
-                              <FaStar key={n} size={14} style={{ color: n <= r.rating ? color : '#e2e8f0' }} />
-                            ))}
-                            <span style={{ fontSize: 12, fontWeight: 600, color, marginLeft: 4 }}>
-                              {r.label || getRatingLabel(r.rating)}
-                            </span>
-                          </div>
-                          {/* Comment */}
-                          {r.remark && (
-                            <div style={{
-                              fontSize: 12, color: '#475569', fontStyle: 'italic',
-                              background: '#FAFAFA', borderRadius: 6, padding: '6px 10px',
-                              borderLeft: `3px solid ${color}`, marginTop: 4,
-                            }}>
-                              "{r.remark}"
-                            </div>
-                          )}
-                        </div>
+                    <div>
+                      <div
+                        style={{
+                          fontSize: '14px',
+                          fontWeight: 700,
+                          color: '#111827'
+                        }}
+                      >
+                        Performance Ratings
                       </div>
-                    );
-                  })}
-                  {allRatings.length > 5 && (
-                    <div style={{ padding: '12px 20px', textAlign: 'center', borderTop: '1px solid #f1f5f9' }}>
-                      <Button variant="link" size="sm" className="text-decoration-none p-0 small" onClick={() => setShowRatingHistory(true)}>
-                        View Full History ({allRatings.length} ratings) <FaArrowRight size={10} />
-                      </Button>
+
+                      <div
+                        style={{
+                          fontSize: '11px',
+                          color: '#9CA3AF'
+                        }}
+                      >
+                        Monthly employee evaluations
+                      </div>
                     </div>
+                  </div>
+
+                  {allRatings.length > 5 && (
+                    <Button
+                      variant="link"
+                      size="sm"
+                      className="p-0 text-decoration-none small"
+                      onClick={() => setShowRatingHistory(true)}
+                    >
+                      View Full History <FaArrowRight size={10} />
+                    </Button>
                   )}
                 </div>
-              )}
-            </Card.Body>
+
+                {allRatings.length > 0 && (() => {
+                  const avg =
+                    allRatings.reduce((s, r) => s + r.rating, 0) /
+                    allRatings.length;
+
+                  const latest = allRatings[0];
+
+                  return (
+                    <div
+                      style={{
+                        display: 'grid',
+                        gridTemplateColumns: '1.4fr 0.8fr 1.2fr',
+                        background: '#F8F9FA',
+                        borderBottom: '1px solid #E5E7EB'
+                      }}
+                    >
+                      <div
+                        style={{
+                          padding: '12px 16px',
+                          borderRight: '1px solid #E5E7EB'
+                        }}
+                      >
+                        <div
+                          style={{
+                            fontSize: '9px',
+                            fontWeight: 700,
+                            color: '#9CA3AF',
+                            textTransform: 'uppercase',
+                            letterSpacing: '0.06em',
+                            marginBottom: '6px'
+                          }}
+                        >
+                          Overall Rating
+                        </div>
+
+                        <div
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '8px'
+                          }}
+                        >
+                          <div
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '2px'
+                            }}
+                          >
+                            {[1, 2, 3, 4, 5].map(n => (
+                              <FaStar
+                                key={n}
+                                size={12}
+                                style={{
+                                  color:
+                                    n <= Math.round(avg)
+                                      ? '#374151'
+                                      : '#D1D5DB'
+                                }}
+                              />
+                            ))}
+                          </div>
+
+                          <span
+                            style={{
+                              fontSize: '15px',
+                              fontWeight: 700,
+                              color: '#111827',
+                              whiteSpace: 'nowrap'
+                            }}
+                          >
+                            {avg.toFixed(1)} / 5
+                          </span>
+                        </div>
+                      </div>
+
+                      <div
+                        style={{
+                          padding: '12px 16px',
+                          borderRight: '1px solid #E5E7EB'
+                        }}
+                      >
+                        <div
+                          style={{
+                            fontSize: '9px',
+                            fontWeight: 700,
+                            color: '#9CA3AF',
+                            textTransform: 'uppercase',
+                            letterSpacing: '0.06em',
+                            marginBottom: '6px'
+                          }}
+                        >
+                          Total Ratings
+                        </div>
+
+                        <div
+                          style={{
+                            fontSize: '20px',
+                            lineHeight: 1,
+                            fontWeight: 700,
+                            color: '#111827'
+                          }}
+                        >
+                          {allRatings.length}
+                        </div>
+                      </div>
+
+                      <div
+                        style={{
+                          padding: '12px 16px'
+                        }}
+                      >
+                        <div
+                          style={{
+                            fontSize: '9px',
+                            fontWeight: 700,
+                            color: '#9CA3AF',
+                            textTransform: 'uppercase',
+                            letterSpacing: '0.06em',
+                            marginBottom: '6px'
+                          }}
+                        >
+                          Latest Status
+                        </div>
+
+                        <span
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            minHeight: '23px',
+                            padding: '3px 9px',
+                            borderRadius: '6px',
+                            background: '#E5E7EB',
+                            color: '#374151',
+                            fontSize: '11px',
+                            fontWeight: 600,
+                            lineHeight: 1.2
+                          }}
+                        >
+                          {latest.label || getRatingLabel(latest.rating)}
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })()}
+
+                <Card.Body className="p-0">
+                  {allRatings.length === 0 ? (
+                    <div
+                      style={{
+                        padding: '36px 20px',
+                        textAlign: 'center'
+                      }}
+                    >
+                      <FaStar
+                        size={40}
+                        style={{
+                          color: '#E2E8F0',
+                          marginBottom: 12
+                        }}
+                      />
+
+                      <div
+                        style={{
+                          fontWeight: 600,
+                          fontSize: 13,
+                          color: '#64748B'
+                        }}
+                      >
+                        No Performance Ratings Yet
+                      </div>
+
+                      <div
+                        style={{
+                          fontSize: 12,
+                          color: '#94A3B8',
+                          marginTop: 4
+                        }}
+                      >
+                        Your manager or admin will rate your performance here.
+                      </div>
+                    </div>
+                  ) : (
+                    <div>
+                      {allRatings.slice(0, 5).map((r, idx) => {
+                        const color = '#374151';
+                        const initials = getNameInitials(r.reviewer_name);
+                        const avatarBg = '#374151';
+
+                        return (
+                          <div
+                            key={r.id || idx}
+                            style={{
+                              display: 'flex',
+                              gap: 12,
+                              padding: '12px 16px',
+                              borderBottom:
+                                idx <
+                                  Math.min(allRatings.length, 5) - 1
+                                  ? '1px solid #F1F5F9'
+                                  : 'none',
+                              alignItems: 'flex-start'
+                            }}
+                          >
+                            <div
+                              style={{
+                                width: 36,
+                                height: 36,
+                                borderRadius: '50%',
+                                flexShrink: 0,
+                                background: avatarBg,
+                                color: '#FFFFFF',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                fontWeight: 700,
+                                fontSize: 12
+                              }}
+                            >
+                              {initials}
+                            </div>
+
+                            <div
+                              style={{
+                                flex: 1,
+                                minWidth: 0
+                              }}
+                            >
+                              <div
+                                style={{
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'space-between',
+                                  flexWrap: 'wrap',
+                                  gap: 4,
+                                  marginBottom: 3
+                                }}
+                              >
+                                <span
+                                  style={{
+                                    fontWeight: 600,
+                                    fontSize: 12,
+                                    color: '#0F172A'
+                                  }}
+                                >
+                                  {getRoleRatedText(r.reviewer_role)}
+                                </span>
+
+                                <span
+                                  style={{
+                                    fontSize: 10,
+                                    color: '#94A3B8'
+                                  }}
+                                >
+                                  {r.month_name} {r.year}
+                                  {r.date
+                                    ? ` · ${fmtRatingDate(r.date)}`
+                                    : ''}
+                                </span>
+                              </div>
+
+                              <div
+                                style={{
+                                  fontSize: 10,
+                                  color: '#64748B',
+                                  marginBottom: 4
+                                }}
+                              >
+                                {r.reviewer_name}
+                              </div>
+
+                              <div
+                                style={{
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: 3,
+                                  marginBottom: r.remark ? 5 : 0,
+                                  flexWrap: 'wrap'
+                                }}
+                              >
+                                {[1, 2, 3, 4, 5].map(n => (
+                                  <FaStar
+                                    key={n}
+                                    size={12}
+                                    style={{
+                                      color:
+                                        n <= r.rating
+                                          ? color
+                                          : '#E2E8F0'
+                                    }}
+                                  />
+                                ))}
+
+                                <span
+                                  style={{
+                                    fontSize: 11,
+                                    fontWeight: 600,
+                                    color,
+                                    marginLeft: 3
+                                  }}
+                                >
+                                  {r.label || getRatingLabel(r.rating)}
+                                </span>
+                              </div>
+
+                              {r.remark && (
+                                <div
+                                  style={{
+                                    fontSize: 11,
+                                    color: '#475569',
+                                    fontStyle: 'italic',
+                                    background: '#FAFAFA',
+                                    borderRadius: 6,
+                                    padding: '5px 8px',
+                                    borderLeft: `3px solid ${color}`,
+                                    marginTop: 3
+                                  }}
+                                >
+                                  "{r.remark}"
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+
+                      {allRatings.length > 5 && (
+                        <div
+                          style={{
+                            padding: '10px 16px',
+                            textAlign: 'center',
+                            borderTop: '1px solid #F1F5F9'
+                          }}
+                        >
+                          <Button
+                            variant="link"
+                            size="sm"
+                            className="text-decoration-none p-0 small"
+                            onClick={() =>
+                              setShowRatingHistory(true)
+                            }
+                          >
+                            View Full History ({allRatings.length} ratings){' '}
+                            <FaArrowRight size={10} />
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </Card.Body>
+              </div>
+
+            </div>
           </Card>
         </Col>
       </Row>
 
       <Row className="g-3 g-md-4">
-        {/* ── Attendance Chart ─────────────────────────────────── */}
+
         <Col lg={6}>
-          <Card className="border-0 h-100" style={{ borderRadius: '14px', boxShadow: '0 2px 12px rgba(0,0,0,0.08)' }}>
-            <Card.Header className="bg-white border-0 pt-3 pb-2 px-3" style={{ borderRadius: '14px 14px 0 0' }}>
+          <Card
+            className="border-0 h-100"
+            style={{
+              borderRadius: '16px',
+              boxShadow: '0 4px 20px rgba(15, 23, 42, 0.08)',
+              background: '#FFFFFF',
+              overflow: 'hidden'
+            }}
+          >
+            <Card.Header
+              className="bg-white border-0 px-3 px-md-4 pt-3 pb-3"
+              style={{
+                borderBottom: '1px solid #E5E7EB'
+              }}
+            >
               <div className="d-flex align-items-center justify-content-between flex-wrap gap-2">
+
                 <div className="d-flex align-items-center gap-2">
-                  <div style={{ width: 32, height: 32, borderRadius: 8, background: 'rgba(59,130,246,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <FaChartBar size={15} color="#2563EB" />
+                  <div
+                    className="d-flex align-items-center justify-content-center flex-shrink-0"
+                    style={{
+                      width: 32,
+                      height: 32,
+                      borderRadius: 8,
+                      background: '#F3F4F6',
+                      color: '#374151'
+                    }}
+                  >
+                    <FaChartBar size={14} />
                   </div>
+
                   <div>
-                    <div className="fw-bold" style={{ fontSize: 14, color: '#111827' }}>
-                      {chartView === 'weekly' ? 'Weekly Attendance' : 'Monthly Attendance Overview'}
+                    <div
+                      style={{
+                        fontSize: 14,
+                        fontWeight: 700,
+                        color: '#111827'
+                      }}
+                    >
+                      {chartView === 'weekly'
+                        ? 'Weekly Attendance'
+                        : 'Monthly Attendance Overview'}
                     </div>
-                    <div style={{ fontSize: 11, color: '#9ca3af' }}>
-                      {chartView === 'weekly' ? 'Hours worked this week' : 'Total hours per month'}
+
+                    <div
+                      style={{
+                        fontSize: 11,
+                        color: '#9CA3AF',
+                        marginTop: 1
+                      }}
+                    >
+                      {chartView === 'weekly'
+                        ? 'Hours worked this week'
+                        : 'Total hours per month'}
                     </div>
                   </div>
                 </div>
-                {/* Toggle */}
-                <div style={{ display: 'flex', background: '#f3f4f6', borderRadius: 8, padding: 3 }}>
+
+                <div className="attendance-view-toggle">
                   {['weekly', 'monthly'].map(v => (
                     <button
                       key={v}
                       onClick={() => setChartView(v)}
-                      style={{
-                        border: 'none', cursor: 'pointer', borderRadius: 6, padding: '4px 12px',
-                        fontSize: 11, fontWeight: 600, transition: 'all 0.2s',
-                        background: chartView === v ? '#101828' : '#fff',
-                        color: chartView === v ? '#fff' : '#6b7280'
-                      }}
+                      className={chartView === v ? 'is-active' : ''}
                     >
                       {v === 'weekly' ? 'Weekly' : 'Monthly'}
                     </button>
                   ))}
                 </div>
+
               </div>
             </Card.Header>
 
-            <Card.Body className="p-3 pt-2">
-              <div style={{ height: 270, position: 'relative' }}>
+            <Card.Body className="px-3 px-md-4 pt-3 pb-3">
+
+              <div
+                style={{
+                  height: 260,
+                  position: 'relative'
+                }}
+              >
                 <Bar
-                  data={chartView === 'weekly' ? attendanceChartData : monthlyChartData}
+                  data={
+                    chartView === 'weekly'
+                      ? attendanceChartData
+                      : monthlyChartData
+                  }
                   options={{
                     responsive: true,
                     maintainAspectRatio: false,
-                    animation: { duration: 600, easing: 'easeInOutQuart' },
+
+                    animation: {
+                      duration: 600,
+                      easing: 'easeInOutQuart'
+                    },
+
                     plugins: {
-                      legend: { display: false },
+                      legend: {
+                        display: false
+                      },
+
                       tooltip: {
-                        backgroundColor: 'rgba(17,24,39,0.92)',
-                        titleColor: '#f9fafb',
-                        bodyColor: '#d1d5db',
+                        backgroundColor: 'rgba(17,24,39,0.94)',
+                        titleColor: '#F9FAFB',
+                        bodyColor: '#D1D5DB',
                         padding: 10,
                         cornerRadius: 8,
+
                         callbacks: {
                           label: (ctx) => {
                             const v = ctx.raw;
+
                             if (chartView === 'weekly') {
                               const i = ctx.dataIndex;
-                              if (i >= 5) return v > 0 ? `  ${v}h (Week Off / Holiday)` : '  Week Off / Holiday';
+
+                              if (i >= 5) {
+                                return v > 0
+                                  ? `  ${v}h (Week Off / Holiday)`
+                                  : '  Week Off / Holiday';
+                              }
+
                               return `  ${v}h worked`;
                             }
+
                             return `  ${v}h total`;
                           }
                         }
                       }
                     },
+
                     scales: {
                       x: {
-                        grid: { display: false },
-                        ticks: { font: { size: 11 }, color: '#6b7280' }
+                        grid: {
+                          display: false
+                        },
+
+                        ticks: {
+                          font: {
+                            size: 11
+                          },
+                          color: '#6B7280'
+                        }
                       },
+
                       y: {
                         beginAtZero: true,
-                        grid: { color: 'rgba(0,0,0,0.05)', drawBorder: false },
-                        ticks: { font: { size: 10 }, color: '#9ca3af', callback: v => `${v}h` },
-                        title: { display: true, text: 'Hours', font: { size: 10 }, color: '#9ca3af' }
+
+                        grid: {
+                          color: 'rgba(15, 23, 42, 0.05)',
+                          drawBorder: false
+                        },
+
+                        ticks: {
+                          font: {
+                            size: 10
+                          },
+                          color: '#9CA3AF',
+                          callback: v => `${v}h`
+                        },
+
+                        title: {
+                          display: true,
+                          text: 'Hours',
+                          font: {
+                            size: 10
+                          },
+                          color: '#9CA3AF'
+                        }
                       }
                     }
                   }}
                 />
               </div>
 
-              {/* Legend */}
-              <div className="d-flex flex-wrap justify-content-center gap-3 mt-3" style={{ fontSize: 11 }}>
+              <div
+                className="d-flex flex-wrap justify-content-center gap-3 mt-2"
+                style={{
+                  fontSize: 11
+                }}
+              >
                 <div className="d-flex align-items-center gap-1">
-                  <span style={{ width: 10, height: 10, borderRadius: 3, background: 'rgba(59,130,246,0.75)', display: 'inline-block' }} />
-                  <span style={{ color: '#6b7280' }}>Present Days</span>
+                  <span
+                    style={{
+                      width: 9,
+                      height: 9,
+                      borderRadius: 3,
+                      background: '#6B7280',
+                      display: 'inline-block'
+                    }}
+                  />
+
+                  <span
+                    style={{
+                      color: '#6B7280'
+                    }}
+                  >
+                    Present Days
+                  </span>
                 </div>
+
                 {chartView === 'weekly' && (
                   <div className="d-flex align-items-center gap-1">
-                    <span style={{ width: 10, height: 10, borderRadius: 3, background: 'rgba(156,163,175,0.45)', display: 'inline-block' }} />
-                    <span style={{ color: '#6b7280' }}>Week Off / Holidays</span>
+                    <span
+                      style={{
+                        width: 9,
+                        height: 9,
+                        borderRadius: 3,
+                        background: '#D1D5DB',
+                        display: 'inline-block'
+                      }}
+                    />
+
+                    <span
+                      style={{
+                        color: '#6B7280'
+                      }}
+                    >
+                      Week Off / Holidays
+                    </span>
                   </div>
                 )}
               </div>
+
             </Card.Body>
           </Card>
         </Col>
 
-        {/* ── Leave Distribution ───────────────────────────────── */}
+
         <Col lg={6}>
-          <Card className="border-0 h-100" style={{ borderRadius: '14px', boxShadow: '0 2px 12px rgba(0,0,0,0.08)' }}>
-            <Card.Header className="bg-white border-0 pt-3 pb-2 px-3" style={{ borderRadius: '14px 14px 0 0' }}>
+          <Card
+            className="border-0 h-100"
+            style={{
+              borderRadius: '16px',
+              boxShadow: '0 4px 20px rgba(15, 23, 42, 0.08)',
+              background: '#FFFFFF',
+              overflow: 'hidden'
+            }}
+          >
+            <Card.Header
+              className="bg-white border-0 px-3 px-md-4 pt-3 pb-3"
+              style={{
+                borderBottom: '1px solid #E5E7EB'
+              }}
+            >
               <div className="d-flex align-items-center justify-content-between flex-wrap gap-2">
+
                 <div className="d-flex align-items-center gap-2">
-                  <div style={{ width: 32, height: 32, borderRadius: 8, background: 'rgba(34,197,94,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <FaUmbrellaBeach size={15} color="#168A70" />
+                  <div
+                    className="d-flex align-items-center justify-content-center flex-shrink-0"
+                    style={{
+                      width: 32,
+                      height: 32,
+                      borderRadius: 8,
+                      background: '#F3F4F6',
+                      color: '#374151'
+                    }}
+                  >
+                    <FaUmbrellaBeach size={14} />
                   </div>
+
                   <div>
-                    <div className="fw-bold" style={{ fontSize: 14, color: '#111827' }}>Leave Distribution</div>
-                    <div style={{ fontSize: 11, color: '#9ca3af' }}>Annual leave breakdown</div>
+                    <div
+                      style={{
+                        fontSize: 14,
+                        fontWeight: 700,
+                        color: '#111827'
+                      }}
+                    >
+                      Leave Distribution
+                    </div>
+
+                    <div
+                      style={{
+                        fontSize: 11,
+                        color: '#9CA3AF',
+                        marginTop: 1
+                      }}
+                    >
+                      Annual leave breakdown
+                    </div>
                   </div>
                 </div>
-                <div style={{
-                  background: '#168A70',
-                  color: '#fff', borderRadius: 20, padding: '3px 12px',
-                  fontSize: 12, fontWeight: 700
-                }}>
-                  {parseFloat(leaveBalance.total_accrued || 0).toFixed(1)} days total
+
+                <div
+                  style={{
+                    background: '#F3F4F6',
+                    color: '#374151',
+                    border: '1px solid #E5E7EB',
+                    borderRadius: 20,
+                    padding: '4px 11px',
+                    fontSize: 11,
+                    fontWeight: 700
+                  }}
+                >
+                  {parseFloat(
+                    leaveBalance.total_accrued || 0
+                  ).toFixed(1)}{' '}
+                  days total
                 </div>
+
               </div>
             </Card.Header>
 
-            <Card.Body className="p-3 pt-1">
+            <Card.Body className="px-3 px-md-4 pt-3 pb-3">
+
               {(() => {
                 const used = parseFloat(leaveBalance.used) || 0;
                 const pending = parseFloat(leaveBalance.pending) || 0;
                 const total = parseFloat(leaveBalance.total_accrued) || 0;
-                const available = Math.max(0, total - used - pending);
-                const pct = (v) => total > 0 ? ((v / total) * 100).toFixed(0) : 0;
+                const available = Math.max(
+                  0,
+                  total - used - pending
+                );
+
+                const pct = (v) =>
+                  total > 0
+                    ? ((v / total) * 100).toFixed(0)
+                    : 0;
 
                 const segments = [
-                  { label: 'Leave Used', value: used, pct: pct(used), color: '#C53030', bg: '#FEF2F2', icon: 'Used' },
-                  { label: 'Remaining Leaves', value: available, pct: pct(available), color: '#168A70', bg: '#ECFDF3', icon: 'Available' },
-                  { label: 'Pending Approval', value: pending, pct: pct(pending), color: '#C05621', bg: '#FFF7ED', icon: 'Pending' },
+                  {
+                    label: 'Leave Used',
+                    value: used,
+                    pct: pct(used),
+                    color: '#C53030',
+                    bg: '#FEF2F2',
+                    icon: 'Used'
+                  },
+                  {
+                    label: 'Remaining Leaves',
+                    value: available,
+                    pct: pct(available),
+                    color: '#168A70',
+                    bg: '#ECFDF3',
+                    icon: 'Available'
+                  },
+                  {
+                    label: 'Pending Approval',
+                    value: pending,
+                    pct: pct(pending),
+                    color: '#C05621',
+                    bg: '#FFF7ED',
+                    icon: 'Pending'
+                  }
                 ];
 
                 return (
-                  <div className="d-flex flex-column flex-md-row align-items-center gap-3">
-                    {/* Donut chart – bigger & thicker */}
-                    <div style={{ width: 200, height: 200, flexShrink: 0, margin: '0 auto' }}>
+                  <div
+                    className="d-flex flex-column flex-md-row align-items-center gap-3"
+                    style={{
+                      minHeight: 260
+                    }}
+                  >
+
+                    <div
+                      style={{
+                        width: 190,
+                        height: 190,
+                        flexShrink: 0,
+                        margin: '0 auto'
+                      }}
+                    >
                       <Doughnut
                         data={leaveChartData}
                         options={{
                           responsive: true,
                           maintainAspectRatio: false,
-                          animation: { duration: 700, easing: 'easeInOutQuart' },
-                          cutout: '52%',
+
+                          animation: {
+                            duration: 700,
+                            easing: 'easeInOutQuart'
+                          },
+
+                          cutout: '54%',
+
                           plugins: {
-                            legend: { display: false },
+                            legend: {
+                              display: false
+                            },
+
                             tooltip: {
-                              backgroundColor: 'rgba(17,24,39,0.92)',
-                              titleColor: '#f9fafb',
-                              bodyColor: '#d1d5db',
+                              backgroundColor: 'rgba(17,24,39,0.94)',
+                              titleColor: '#F9FAFB',
+                              bodyColor: '#D1D5DB',
                               padding: 10,
                               cornerRadius: 8,
+
                               callbacks: {
                                 label: (ctx) => {
                                   const v = ctx.raw;
-                                  return total > 0 ? ` ${v} days (${((v / total) * 100).toFixed(0)}%)` : ' No data';
+
+                                  return total > 0
+                                    ? ` ${v} days (${(
+                                      (v / total) *
+                                      100
+                                    ).toFixed(0)}%)`
+                                    : ' No data';
                                 }
                               }
                             }
@@ -1718,41 +2195,112 @@ const EmployeeDashboard = () => {
                         }}
                       />
                     </div>
-
-                    {/* Legend with progress bars */}
                     <div className="flex-grow-1 w-100">
+
                       {segments.map(seg => (
-                        <div key={seg.label} className="mb-3">
-                          <div className="d-flex justify-content-between align-items-center mb-1">
-                            <div className="d-flex align-items-center gap-1">
-                              <span style={{ width: 10, height: 10, borderRadius: '50%', background: seg.color, flexShrink: 0, display: 'inline-block' }} />
-                              <span style={{ fontSize: 12, color: '#374151', fontWeight: 500 }}>{seg.label}</span>
+                        <div
+                          key={seg.label}
+                          className="mb-3"
+                        >
+
+                          <div
+                            className="d-flex justify-content-between align-items-center mb-1"
+                          >
+
+                            <div
+                              className="d-flex align-items-center gap-2"
+                            >
+                              <span
+                                style={{
+                                  width: 9,
+                                  height: 9,
+                                  borderRadius: '50%',
+                                  background: seg.color,
+                                  flexShrink: 0,
+                                  display: 'inline-block'
+                                }}
+                              />
+
+                              <span
+                                style={{
+                                  fontSize: 12,
+                                  color: '#374151',
+                                  fontWeight: 500
+                                }}
+                              >
+                                {seg.label}
+                              </span>
                             </div>
-                            <div className="d-flex align-items-center gap-2">
-                              <span style={{ fontSize: 13, fontWeight: 700, color: seg.color }}>{seg.value.toFixed(1)}d</span>
-                              <span style={{ fontSize: 11, color: '#9ca3af', background: '#f3f4f6', borderRadius: 10, padding: '1px 6px' }}>{seg.pct}%</span>
+
+                            <div
+                              className="d-flex align-items-center gap-2"
+                            >
+                              <span
+                                style={{
+                                  fontSize: 12,
+                                  fontWeight: 700,
+                                  color: seg.color
+                                }}
+                              >
+                                {seg.value.toFixed(1)}d
+                              </span>
+
+                              <span
+                                style={{
+                                  fontSize: 10,
+                                  color: '#9CA3AF',
+                                  background: '#F3F4F6',
+                                  borderRadius: 10,
+                                  padding: '2px 6px'
+                                }}
+                              >
+                                {seg.pct}%
+                              </span>
                             </div>
+
                           </div>
-                          <div className="hrms-progress-track" style={{ height: 6, borderRadius: 99, background: '#f3f4f6', overflow: 'hidden' }}>
-                            <div className="hrms-progress-fill" style={{
-                              height: '100%', borderRadius: 99,
-                              background: seg.color,
-                              width: `${Math.max(parseFloat(seg.pct), seg.value > 0 ? 3 : 0)}%`,
-                              transition: 'width 0.7s ease'
-                            }} />
+
+                          <div
+                            className="hrms-progress-track"
+                            style={{
+                              height: 6,
+                              borderRadius: 99,
+                              background: '#F3F4F6',
+                              overflow: 'hidden'
+                            }}
+                          >
+                            <div
+                              className="hrms-progress-fill"
+                              style={{
+                                height: '100%',
+                                borderRadius: 99,
+                                background: seg.color,
+                                width: `${Math.max(
+                                  parseFloat(seg.pct),
+                                  seg.value > 0 ? 3 : 0
+                                )}%`,
+                                transition: 'width 0.7s ease'
+                              }}
+                            />
                           </div>
+
                         </div>
                       ))}
+
                     </div>
+
                   </div>
                 );
               })()}
+
             </Card.Body>
           </Card>
         </Col>
 
-        {/* Upcoming Holidays & Quick Actions */}
-        {/* <Col lg={5}>
+
+      </Row>
+      */}
+      {/* <Col lg={5}>
           <Card className="border-0 shadow-sm mb-3">
             <Card.Header className="bg-white py-2 py-md-3 d-flex justify-content-between align-items-center">
               <h6 className="mb-0 small">
@@ -1809,7 +2357,7 @@ const EmployeeDashboard = () => {
             </Card>
           )} */}
 
-        {/* <Card className="border-0 shadow-sm">
+      {/* <Card className="border-0 shadow-sm">
             <Card.Header className="bg-white py-2 py-md-3">
               <h6 className="mb-0 small">
                 <FaBell className="me-2 text-primary" />
@@ -1833,10 +2381,9 @@ const EmployeeDashboard = () => {
               </div>
             </Card.Body>
           </Card> */}
-        {/* </Col> */}
-      </Row>
+      {/* </Col> */}
 
-      {/* Clock-out confirmation overlay */}
+
       {showClockOutConfirm && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.35)', backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <div style={{ background: '#fff0ec', border: '1px solid #fdb8a0', borderRadius: 18, padding: '32px 28px', boxShadow: '0 24px 64px rgba(0,0,0,0.22)', textAlign: 'center', maxWidth: 320, width: '90%' }}>
@@ -1861,7 +2408,6 @@ const EmployeeDashboard = () => {
         </div>
       )}
 
-      {/* Full Performance Rating History Modal */}
       <Modal show={showRatingHistory} onHide={() => setShowRatingHistory(false)} centered size="lg">
         <Modal.Header closeButton style={{ background: '#1e2a3e', border: 'none', padding: '16px 24px' }}>
           <Modal.Title style={{ color: '#fff', fontSize: 15, fontWeight: 700 }}>
@@ -1932,9 +2478,6 @@ const EmployeeDashboard = () => {
         </Modal.Footer>
       </Modal>
 
-      {/* Pending ticket confirmation popup — shown on dashboard load whenever this
-          employee has a ticket the team marked resolved (status 'resolved_pending')
-          that they haven't yet confirmed or reopened. */}
       <Modal
         show={showTicketConfirmModal && !!activeConfirmTicket}
         onHide={() => setShowTicketConfirmModal(false)}

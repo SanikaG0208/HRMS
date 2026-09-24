@@ -58,9 +58,20 @@ export default function LeaveBalanceRingsCard({ employeeId }) {
       ) : (
         <>
           <div style={{ display: 'flex', gap: 20, justifyContent: 'center', marginBottom: usageEntries.length > 0 ? 14 : 0 }}>
-            <Ring value={Math.round(balance.available || 0)} max={Math.max(1, Math.round(balance.total_accrued || 0))} color={QA.primary} label="Available" />
-            <Ring value={Math.round(balance.comp_off_balance || 0)} max={COMP_OFF_VISUAL_MAX} color={QA.success} label="Comp-Off" />
-          </div>
+  <Ring
+    value={Math.round(balance.available || 0)}
+    max={Math.max(1, Math.round(balance.total_accrued || 0))}
+    color="#374151"
+    label="Available"
+  />
+
+  <Ring
+    value={Math.round(balance.comp_off_balance || 0)}
+    max={COMP_OFF_VISUAL_MAX}
+    color="#374151"
+    label="Comp-Off"
+  />
+</div>
           {usageEntries.length > 0 && (
             <div style={{ borderTop: `1px solid ${QA.border}`, paddingTop: 10 }}>
               <div style={{ fontSize: 10, fontWeight: 700, color: QA.textMuted, textTransform: 'uppercase', marginBottom: 6 }}>Used this year</div>
