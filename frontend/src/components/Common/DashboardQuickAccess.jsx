@@ -49,15 +49,24 @@ const QUICK_ACCESS_CSS = `
      LOWER DASHBOARD CARDS
      ========================================================= */
 
-  .dash-quick-access__lower-cards {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 16px;
-  }
+ .dash-quick-access__lower-cards {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  align-items: stretch;
+}
 
-  .dash-quick-access__lower-card {
-    min-width: 0;
-  }
+.dash-quick-access__lower-card {
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  align-items: stretch;
+}
+
+.dash-quick-access__lower-card > * {
+  width: 100%;
+  height: 100%;
+}
 
   /* =========================================================
      TABLET
