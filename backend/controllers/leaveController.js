@@ -383,6 +383,15 @@ exports.applyLeave = async (req, res) => {
             return res.status(400).json({ success: false, message: 'Missing required fields' });
         }
 
+        // Guards against malformed dates (e.g. a stray extra "20" prefix on the year — seen
+        // once in production as "202026-09-02") slipping through to be stored, which silently
+        // breaks the leave-approval → attendance sync for that request since it iterates the
+        // literal start_date..end_date range.
+        const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+        if (!DATE_RE.test(start_date) || (end_date && !DATE_RE.test(end_date))) {
+            return res.status(400).json({ success: false, message: 'Invalid date format for leave request' });
+        }
+
         if (!reporting_manager || !reporting_manager.trim()) {
             return res.status(400).json({ success: false, message: 'Reporting manager is required' });
         }
@@ -481,7 +490,6 @@ exports.applyLeave = async (req, res) => {
             .from('leaves')
             .insert([{
                 employee_id,
-                employee_name: `${employee.first_name} ${employee.last_name}`,
                 leave_type, leave_duration,
                 half_day_type: half_day_type || null,
                 start_date,
@@ -496,31 +504,8 @@ exports.applyLeave = async (req, res) => {
             }])
             .select();
 
-        let insertedLeave;
-        if (leaveError) {
-            // If employee_name column doesn't exist, retry without it
-            if (leaveError.message && leaveError.message.includes('employee_name')) {
-                const { data: leaveData2, error: leaveError2 } = await supabase
-                    .from('leaves')
-                    .insert([{
-                        employee_id, leave_type, leave_duration,
-                        half_day_type: half_day_type || null,
-                        start_date, end_date: end_date || start_date,
-                        reason, days_count: days_count || 1,
-                        reporting_manager: reporting_manager.trim(),
-                        ...statusFields,
-                        applied_date: nowUTC.toISOString().split('T')[0],
-                        created_at: createdAtIST, updated_at: createdAtIST
-                    }])
-                    .select();
-                if (leaveError2) throw leaveError2;
-                insertedLeave = leaveData2[0];
-            } else {
-                throw leaveError;
-            }
-        } else {
-            insertedLeave = leaveData[0];
-        }
+        if (leaveError) throw leaveError;
+        const insertedLeave = leaveData[0];
 
         if (isBirthday) {
             await syncAttendanceForApprovedLeave(insertedLeave);
