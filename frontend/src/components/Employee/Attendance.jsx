@@ -2595,18 +2595,54 @@ const Attendance = () => {
                 </>
               ) : (
                 <>
-                  <div style={{ height: '300px' }}>
-                    <Line data={{ ...chartData, datasets: chartData.datasets.map(dataset => ({ ...dataset, borderColor: '#1f4e79', backgroundColor: 'rgba(31,78,121,.08)', pointBackgroundColor: dataset.data.map(value => value >= 8 ? '#1f4e79' : value >= 5 ? '#64748b' : '#a1aab7') })) }} options={{
-                      responsive: true,
-                      maintainAspectRatio: false,
-                      plugins: { legend: { display: false }, tooltip: { callbacks: { label: (context) => `${context.raw} hours` } } },
-                      scales: { y: { beginAtZero: true, max: 10, title: { display: true, text: 'Hours' }, ticks: { stepSize: 1, callback: (value) => value + 'h' } } }
-                    }} />
+                  <div className="am-chart-heading">
+                    <div><h3>Daily working hours</h3><p>Recorded hours for the most recent {chartData.labels.length} days in this reporting period.</p></div>
+                    <span className="am-chart-unit">Hours per day</span>
                   </div>
-                  <div className="mt-2 text-center text-muted small">
-                    <span className="me-3"><span style={{ color: '#1f4e79' }}>●</span> Full Day (8+ hrs)</span>
-                    <span className="me-3"><span style={{ color: '#64748b' }}>●</span> Half Day (5-8 hrs)</span>
-                    <span><span style={{ color: '#a1aab7' }}>●</span> Absent ({'<'}5 hrs)</span>
+                  {chartData.labels.length ? (
+                    <div className="am-hours-chart">
+                      <Line
+                        data={{ ...chartData, datasets: chartData.datasets.map(dataset => ({
+                          ...dataset,
+                          borderColor: '#1f4e79',
+                          backgroundColor: 'rgba(31,78,121,.04)',
+                          tension: 0,
+                          fill: false,
+                          borderWidth: 2,
+                          pointRadius: 4,
+                          pointHoverRadius: 6,
+                          pointBorderColor: '#fff',
+                          pointBorderWidth: 2,
+                          pointBackgroundColor: dataset.data.map(value => value >= 8 ? '#1f4e79' : value >= 5 ? '#64748b' : '#a1aab7'),
+                        })) }}
+                        options={{
+                          responsive: true,
+                          maintainAspectRatio: false,
+                          layout: { padding: { top: 16, right: 12 } },
+                          interaction: { mode: 'index', intersect: false },
+                          plugins: {
+                            legend: { display: false },
+                            tooltip: { backgroundColor: '#172033', padding: 12, displayColors: false, callbacks: { label: context => `Worked: ${Number(context.raw).toFixed(2)} hours` } },
+                          },
+                          scales: {
+                            x: { grid: { display: false }, border: { color: '#e5eaf0' }, ticks: { color: '#64748b', maxRotation: 0, autoSkip: true, maxTicksLimit: 8 } },
+                            y: {
+                              beginAtZero: true,
+                              suggestedMax: Math.max(10, Math.ceil(Math.max(0, ...chartData.datasets.flatMap(dataset => dataset.data.map(value => Number(value) || 0))) * 1.15)),
+                              title: { display: true, text: 'Hours worked', color: '#64748b' },
+                              grid: { color: '#eef2f6' },
+                              border: { display: false },
+                              ticks: { color: '#64748b', maxTicksLimit: 7, callback: value => value + 'h' },
+                            },
+                          },
+                        }}
+                      />
+                    </div>
+                  ) : <div className="am-chart-empty">No recorded working hours for this period.</div>}
+                  <div className="am-chart-legend">
+                    <span><i style={{ background: '#1f4e79' }} />8+ hours</span>
+                    <span><i style={{ background: '#64748b' }} />5–8 hours</span>
+                    <span><i style={{ background: '#a1aab7' }} />Under 5 hours</span>
                   </div>
                 </>
               )}

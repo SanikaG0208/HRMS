@@ -34,3 +34,14 @@
 .am-modal .form-control,.am-modal .form-select { border-color:#dce3eb; border-radius:8px; font-size:13px; }
 .am-modal .form-control:focus,.am-modal .form-select:focus { border-color:#52718c; box-shadow:0 0 0 3px rgba(31,78,121,.1); }
 @media (max-width:575px) { .am-page-title { font-size:21px; } .am-header-icon { width:40px; height:40px; } .am-stat-card h4 { font-size:24px; } .am-page .table td { padding:12px 8px; } .am-page-header > .d-flex { min-width:0; } }
+
+.am-chart-heading { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px; margin:20px 8px; }
+.am-chart-heading h3 { font-size:14px; font-weight:700; margin:0 0 6px; }
+.am-chart-heading p { font-size:12px; color:#64748b; margin:0; }
+.am-chart-unit { background:#f8fafc; border:1px solid #e5eaf0; border-radius:6px; padding:6px 10px; font-size:11px; color:#64748b; }
+.am-hours-chart { height:320px; padding:0 4px; }
+.am-chart-legend { display:flex; justify-content:center; flex-wrap:wrap; gap:20px; padding:20px 0 8px; color:#64748b; font-size:12px; }
+.am-chart-legend span { display:inline-flex; align-items:center; gap:7px; }
+.am-chart-legend i { width:8px; height:8px; border-radius:50%; }
+.am-chart-empty { text-align:center; padding:80px 20px; color:#64748b; font-size:13px; background:#f8fafc; border-radius:10px; }
+@media (max-width:575px) { .am-hours-chart { height:260px; } .am-chart-heading { margin:16px 0; } .am-chart-legend { gap:12px; font-size:11px; } }
