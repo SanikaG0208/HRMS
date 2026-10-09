@@ -1413,14 +1413,15 @@ const Attendance = () => {
   };
 
   const handlePreviousPage = () => {
-    if (historyPage === 0) return;
-    const newPage = historyPage - 1;
+    if (loadingHistory) return;
+    const newPage = historyPage + 1;
     setHistoryPage(newPage);
     fetchAttendanceHistory(newPage);
   };
 
   const handleNextPage = () => {
-    const newPage = historyPage + 1;
+    if (loadingHistory || historyPage === 0) return;
+    const newPage = historyPage - 1;
     setHistoryPage(newPage);
     fetchAttendanceHistory(newPage);
   };
@@ -2577,7 +2578,7 @@ const Attendance = () => {
                       <Button
                         variant="outline-secondary"
                         size="sm"
-                        disabled={historyPage === 0 || loadingHistory}
+                        disabled={loadingHistory}
                         onClick={handlePreviousPage}
                       >
                         ← Previous 30 Days
@@ -2585,7 +2586,7 @@ const Attendance = () => {
                       <Button
                         variant="outline-secondary"
                         size="sm"
-                        disabled={loadingHistory}
+                        disabled={historyPage === 0 || loadingHistory}
                         onClick={handleNextPage}
                       >
                         Next 30 Days →
