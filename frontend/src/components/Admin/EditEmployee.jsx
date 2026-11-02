@@ -1,3 +1,4 @@
+import PaginatedTable from '../Common/PaginatedTable';
 // components/Admin/EditEmployee.jsx
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
@@ -54,6 +55,7 @@ const EditEmployee = () => {
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
     const [managers, setManagers] = useState([]);
+    const [subAdmins, setSubAdmins] = useState([]);
     const [hrEmployees, setHrEmployees] = useState([]);
 
     // Change password states
@@ -106,11 +108,13 @@ const EditEmployee = () => {
 
     const fetchManagers = async () => {
         try {
-            const [tlRes, hrRes] = await Promise.all([
+            const [tlRes, managerRes, hrRes] = await Promise.all([
                 axios.get(API_ENDPOINTS.TEAMS_MANAGERS_LIST),
+                axios.get(API_ENDPOINTS.TEAMS_SUB_ADMINS_LIST),
                 axios.get(API_ENDPOINTS.TEAMS_HR_LIST),
             ]);
             setManagers(tlRes.data.managers || []);
+            setSubAdmins(managerRes.data.managers || []);
             setHrEmployees(hrRes.data.managers || []);
         } catch (err) {
             console.error('Error fetching managers:', err);
@@ -825,11 +829,11 @@ const EditEmployee = () => {
                                         onChange={handleChange}
                                         size="sm"
                                     >
-                                        <option value="">-- No TL --</option>
+                                        <option value="">-- Select Reporting Manager --</option>
                                         {managers.length > 0 && (
                                             <optgroup label="Team Leaders">
                                                 {managers.map(m => {
-                                                    const fullName = `${m.first_name} ${m.last_name}`.trim();
+                                                    const fullName = [m.first_name, m.last_name].filter(Boolean).map(n => n.trim()).join(' ');
                                                     return (
                                                         <option key={m.employee_id} value={fullName}>
                                                             {fullName} ({m.designation})
@@ -838,10 +842,18 @@ const EditEmployee = () => {
                                                 })}
                                             </optgroup>
                                         )}
+                                        {subAdmins.length > 0 && (
+                                            <optgroup label="Managers">
+                                                {subAdmins.map(m => {
+                                                    const fullName = [m.first_name, m.last_name].filter(Boolean).map(n => n.trim()).join(' ');
+                                                    return <option key={m.employee_id} value={fullName}>{fullName} ({m.designation})</option>;
+                                                })}
+                                            </optgroup>
+                                        )}
                                         {hrEmployees.length > 0 && (
                                             <optgroup label="HR">
                                                 {hrEmployees.map(m => {
-                                                    const fullName = `${m.first_name} ${m.last_name}`.trim();
+                                                    const fullName = [m.first_name, m.last_name].filter(Boolean).map(n => n.trim()).join(' ');
                                                     return (
                                                         <option key={m.employee_id} value={fullName}>
                                                             {fullName} ({m.designation})
@@ -1356,7 +1368,7 @@ const EditEmployee = () => {
                         </div>
                     ) : employeeDocuments.length > 0 ? (
                         <div className="table-responsive">
-                            <Table striped hover size="sm" className="mb-0">
+                            <PaginatedTable searchable as={Table} striped hover size="sm" className="mb-0">
                                 <thead className="bg-light">
                                     <tr>
                                         <th className="small text-dark">Document Type</th>
@@ -1414,7 +1426,7 @@ const EditEmployee = () => {
                                         </tr>
                                     ))}
                                 </tbody>
-                            </Table>
+                            </PaginatedTable>
                         </div>
                     ) : (
                         <div className="text-center py-4">

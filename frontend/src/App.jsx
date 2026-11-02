@@ -1,9 +1,11 @@
 // src/App.jsx
-import React, { lazy, Suspense } from 'react';
+import React, { lazy, Suspense, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import './App.css';
 import './index.css';
+import './components/Layout/ManagementTheme.css';
+import './components/Layout/ResponsiveLayout.css';
 
 // Layout & Auth — always needed, load eagerly
 import Navbar from './components/Layout/Navbar';
@@ -57,9 +59,8 @@ const EmployeeDashboard      = lazy(() => import('./components/Employee/Dashboar
 const Profile                = lazy(() => import('./components/Employee/Profile'));
 const ProfileEdit            = lazy(() => import('./components/Employee/ProfileEdit'));
 const ApplyLeave             = lazy(() => import('./components/Employee/ApplyLeave'));
-const SalarySlip             = lazy(() => import('./components/Employee/SalarySlip'));
+const Payroll = lazy(() => import('./components/Employee/Payroll'));
 const Attendance             = lazy(() => import('./components/Employee/Attendance'));
-const EmployeeDeductions     = lazy(() => import('./components/Employee/EmployeeDeductions'));
 const EmployeeUpdateRequests = lazy(() => import('./components/Employee/EmployeeUpdateRequests'));
 const EmployeeUpdateForm     = lazy(() => import('./components/Employee/EmployeeUpdateForm'));
 const ManagerLeaveRequests   = lazy(() => import('./components/Employee/ManagerLeaveRequests'));
@@ -127,6 +128,11 @@ function AppContent() {
   const isUnauthorizedPage = location.pathname === '/unauthorized';
   const isNetworkBlockedPage = location.pathname === '/network-blocked';
   const isOnboardingPage = location.pathname.startsWith('/onboarding/');
+  const managementTheme = ['admin', 'sub_admin', 'hr'].includes(user?.role) && !isLoginPage && !isUnauthorizedPage && !isNetworkBlockedPage && !isOnboardingPage;
+  useEffect(() => {
+    document.body.classList.toggle('hrms-management-session', managementTheme);
+    return () => document.body.classList.remove('hrms-management-session');
+  }, [managementTheme]);
 
   // Public onboarding pages — render immediately, no auth check needed
   if (isOnboardingPage) {
@@ -167,7 +173,7 @@ function AppContent() {
 
   // For all other pages, render with sidebar and navbar
   return (
-    <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', position: 'relative' }}>
+    <div className="hrms-app-shell" style={{ display: 'flex', height: '100vh', overflow: 'hidden', position: 'relative' }}>
       {/* Sidebar */}
       {user && <Sidebar />}
 
@@ -187,7 +193,7 @@ function AppContent() {
         {user && <Navbar />}
 
         {/* Page Content */}
-        <div style={{
+        <div className={managementTheme ? 'hrms-page-content hrms-management-theme' : 'hrms-page-content'} style={{
           flex: 1,
           overflowY: 'auto',
           padding: '28px',
@@ -391,13 +397,13 @@ function AppContent() {
 
             <Route path="/salary-slip" element={
               <PrivateRoute allowedRoles={['employee', 'manager', 'housekeeper']}>
-                <SalarySlip />
+                <Payroll />
               </PrivateRoute>
             } />
 
             <Route path="/employee/deductions" element={
               <PrivateRoute allowedRoles={['employee', 'manager', 'housekeeper']}>
-                <EmployeeDeductions />
+                <Payroll />
               </PrivateRoute>
             } />
 

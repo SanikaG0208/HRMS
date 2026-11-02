@@ -185,7 +185,7 @@ test('unrelated manager cannot approve a leave', async () => {
 
 // Expected behavior assertions documenting independently reproduced existing defects.
 // TODO failures stay visible without treating them as regressions from employee_name removal.
-test('employee cannot cancel another employee leave', { todo: 'Existing ownership check is missing in updateLeaveStatus' }, async () => {
+test('employee cannot cancel another employee leave', async () => {
     const h = harness('controllers/leaveController.js', [response('leaves', makeLeave('Unpaid')),
         response('leaves', [{ ...makeLeave('Unpaid'), status: 'cancelled' }]), response('employees')]);
     const res = makeRes();
@@ -194,7 +194,7 @@ test('employee cannot cancel another employee leave', { todo: 'Existing ownershi
     assert.equal(h.updates.length, 0);
 });
 
-test('repeated approval must not deduct Comp-Off twice', { todo: 'Existing status transition has no already-approved guard' }, async () => {
+test('repeated approval must not deduct Comp-Off twice', async () => {
     const leave = makeLeave('Comp-Off', 'approved');
     const h = harness('controllers/leaveController.js', [response('leaves', leave), response('leaves', [leave]),
         response('employees', { comp_off_balance: 2 }), response('employees'), response('employees')]);
@@ -202,7 +202,7 @@ test('repeated approval must not deduct Comp-Off twice', { todo: 'Existing statu
     assert.equal(h.updates.filter(x => x.table === 'employees').length, 0);
 });
 
-test('attendance write failure must not report complete approval success', { todo: 'Existing attendance service catches errors without propagating failure' }, async () => {
+test('attendance write failure must not report complete approval success', async () => {
     const leave = makeLeave('Birthday');
     const h = harness('controllers/leaveController.js', [response('leaves', leave), response('leaves', [{ ...leave, status: 'approved' }]),
         response('attendance'), response('attendance', null, { message: 'Database unavailable' }), response('employees')], true);
@@ -239,19 +239,16 @@ for (const failure of [false, true]) {
         });
     }
 
-    test(`absence job: unpaid insert ${failure ? 'failure is logged, not counted as created' : 'uses valid schema'}`, async () => {
+    test('absence job records absence without creating any leave', async () => {
         const h = harness('cron/absentEmployeeCheck.js', [
             response('employees', [{ ...employee, dob: null }]), response('leaves', []),
-            response('attendance'), response('attendance'), response('leaves'),
-            response('leaves', null, failure ? { message: 'Database unavailable' } : null),
+            response('attendance'), response('attendance'),
         ]);
         const result = await h.api.markAbsentEmployeesAsLeave();
-        const leaves = h.inserts.filter(x => x.table === 'leaves');
-        assert.equal(leaves.length, 1);
-        assert.equal(leaves[0].rows[0].leave_type, 'Unpaid');
-        assert.equal(leaves[0].rows[0].status, 'approved');
-        assert.equal(result.leaveCreatedCount, failure ? 0 : 1);
-        assert.equal(h.errors.some(args => String(args[0]).includes('Error creating leave record')), failure);
+        assert.equal(h.inserts.filter(x => x.table === 'leaves').length, 0);
+        assert.equal(h.inserts.find(x => x.table === 'attendance').rows[0].status, 'absent');
+        assert.equal(result.absentCount, 1);
+        assert.equal(result.leaveCreatedCount, 0);
         assert.equal(h.responses.length, 0);
     });
 
@@ -271,3 +268,26 @@ for (const failure of [false, true]) {
         assert.equal(h.responses.length, 0);
     });
 }
+
+
+test('application calculates weekdays on the server instead of trusting supplied days', async () => {
+    const h = harness('controllers/leaveController.js', [
+        response('employees', employee), response('leaves', [makeLeave('Unpaid')]), response('employees'),
+    ]);
+    const res = makeRes();
+    await h.api.applyLeave({ body: { employee_id: employee.employee_id, leave_type: 'Unpaid',
+        leave_duration: 'Full Day', start_date: '2026-10-09', end_date: '2026-10-12',
+        reason: 'Personal leave request', reporting_manager: 'Test Manager', days_count: 4 } }, res);
+    assert.equal(res.body.success, true);
+    assert.equal(h.inserts.find(x => x.table === 'leaves').rows[0].days_count, 2);
+});
+
+test('weekend-only leave is rejected before querying the database', async () => {
+    const h = harness('controllers/leaveController.js', []);
+    const res = makeRes();
+    await h.api.applyLeave({ body: { employee_id: employee.employee_id, leave_type: 'Unpaid',
+        start_date: '2026-10-10', end_date: '2026-10-11', reason: 'Personal leave request',
+        reporting_manager: 'Test Manager', days_count: 2 } }, res);
+    assert.equal(res.statusCode, 400);
+    assert.equal(h.inserts.length, 0);
+});

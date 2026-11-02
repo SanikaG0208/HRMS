@@ -1,3 +1,4 @@
+import PaginatedTable from '../Common/PaginatedTable';
 // src/components/Admin/LeaveReports.jsx
 import React, { useState, useEffect } from 'react';
 import {
@@ -62,11 +63,10 @@ const LeaveReports = () => {
           const used = parseFloat(rawBalance.used) || 0;
           const pendingApproval = parseFloat(rawBalance.pending) || 0;
           
-          // PENDING = TOTAL ACCRUED - USED (leaves that are either available or pending approval)
-          const calculatedPending = totalAccrued - used;
-          
-          // AVAILABLE = TOTAL ACCRUED - USED - PENDING_APPROVAL
-          const available = totalAccrued - used - pendingApproval;
+          // Use the authoritative API balance, which includes manual adjustments
+          // and eligibility rules. Recomputing from accrual alone loses HR credits.
+          const available = parseFloat(rawBalance.available) || 0;
+          const calculatedPending = available + pendingApproval;
           
           console.log(`📊 Employee ${emp.employee_id}:`, {
             totalAccrued,
@@ -74,7 +74,7 @@ const LeaveReports = () => {
             pendingApproval,
             calculatedPending,
             available,
-            formula: `${totalAccrued} - ${used} = ${calculatedPending}`
+            formula: `${available} available + ${pendingApproval} awaiting approval = ${calculatedPending}`
           });
           
           return {
@@ -400,7 +400,7 @@ const LeaveReports = () => {
             className="table-responsive"
             style={{ maxHeight: "400px", overflowY: "auto" }}
           >
-            <Table hover className="mb-0" style={{ tableLayout: 'fixed' }}>
+            <PaginatedTable as={Table} hover className="mb-0" style={{ tableLayout: 'fixed' }}>
 
               {/* Header - with fixed column widths and nowrap text */}
               <thead className="bg-light sticky-top" style={{ top: 0, zIndex: 10 }}>
@@ -567,7 +567,7 @@ const LeaveReports = () => {
                   </tr>
                 )}
               </tbody>
-            </Table>
+            </PaginatedTable>
           </div>
 
           {/* Summary Footer */}

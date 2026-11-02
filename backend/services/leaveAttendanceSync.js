@@ -29,13 +29,14 @@ function dateRange(startDate, endDate) {
 }
 
 async function upsertAttendanceRow(employee_id, attendance_date, attendanceType) {
-    const { data: existing } = await supabase
+    const { data: existing, error: readError } = await supabase
         .from('attendance')
         .select('id, clock_in')
         .eq('employee_id', employee_id)
         .eq('attendance_date', attendance_date)
         .maybeSingle();
 
+    if (readError) throw readError;
     // Never overwrite a day that already has a real clock-in.
     if (existing && existing.clock_in) return;
 
@@ -79,10 +80,11 @@ async function syncAttendanceForApprovedLeave(leave) {
     if (!attendanceType) return;
 
     for (const date of dateRange(leave.start_date, leave.end_date)) {
+        if ([0, 6].includes(new Date(date + 'T00:00:00Z').getUTCDay())) continue;
         try {
             await upsertAttendanceRow(leave.employee_id, date, attendanceType);
         } catch (err) {
-            console.error(`⚠️ syncAttendanceForApprovedLeave failed for ${leave.employee_id} on ${date}:`, err.message);
+            throw err;
         }
     }
 }

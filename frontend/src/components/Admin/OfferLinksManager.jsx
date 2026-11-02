@@ -7,6 +7,7 @@ import {
     Pencil, Save, X,
 } from 'lucide-react';
 import API_ENDPOINTS from '../../config/api';
+import axiosInstance from '../../config/axios';
 
 // ── Status config ─────────────────────────────────────────────────────────────
 const STATUS_CFG = {
@@ -37,12 +38,22 @@ const StatusBadge = ({ status, size = 'sm' }) => {
 const fmtDate = (s) => s ? new Date(s).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : '—';
 const fmtMoney = (n) => n ? `₹${Number(n).toLocaleString('en-IN')}` : '—';
 
-const authFetch = (url, opts = {}) =>
-    fetch(url, { ...opts, headers: { Authorization: `Bearer ${localStorage.getItem('token')}`, ...(opts.headers || {}) } });
+// Use the shared client so expired access tokens refresh and retry automatically.
+const authFetch = async (url, opts = {}) => {
+    try {
+        const response = await axiosInstance.request({
+            url, method: opts.method || 'GET', headers: opts.headers, data: opts.body,
+        });
+        return { json: async () => response.data };
+    } catch (error) {
+        if (error.response) return { json: async () => error.response.data };
+        throw error;
+    }
+};
 
 // ── Avatar ────────────────────────────────────────────────────────────────────
 const Avatar = ({ name, size = 42 }) => {
-    const colors = ['#6366f1', '#8b5cf6', '#10b981', '#f59e0b', '#ef4444', '#06b6d4', '#ec4899'];
+    const colors = ["#1f4e79", '#8b5cf6', '#10b981', '#f59e0b', '#ef4444', '#06b6d4', '#ec4899'];
     const initials = (name || '?')[0].toUpperCase();
     const color = colors[(name || '').split('').reduce((a, c) => a + c.charCodeAt(0), 0) % colors.length];
     return (
@@ -98,7 +109,7 @@ const InfoRow = ({ label, value }) => (
 // `raw` is the unformatted value (bound to the input + saved to the backend);
 // `display` is only used to render the view-mode text (e.g. a formatted date).
 const FieldRow = ({ label, field, type = 'text', raw, display, editMode, onChange }) => (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+    <div className="" style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
         <span style={{ fontSize: 11, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: 0.6, fontWeight: 600 }}>{label}</span>
         {editMode ? (
             <input
@@ -119,12 +130,12 @@ const isoDate = (v) => (v ? String(v).split('T')[0] : '');
 const Section = ({ icon: Icon, title, children }) => (
     <div style={{ marginBottom: 20 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
-            <div style={{ width: 28, height: 28, borderRadius: 7, background: '#e0e7ff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <Icon size={14} color="#4338ca" />
+            <div style={{ width: 28, height: 28, borderRadius: 7, background: "#dce3eb", display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Icon size={14} color="#173a5c" />
             </div>
             <span style={{ fontSize: 13, fontWeight: 700, color: '#374151', textTransform: 'uppercase', letterSpacing: 0.6 }}>{title}</span>
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px 20px', background: '#f8fafc', borderRadius: 10, padding: '14px 16px', border: '1px solid #f1f5f9' }}>
+        <div className="hrms-responsive-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px 20px', background: '#f8fafc', borderRadius: 10, padding: '14px 16px', border: '1px solid #f1f5f9' }}>
             {children}
         </div>
     </div>
@@ -332,7 +343,7 @@ export default function OfferLinksManager() {
         <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
 
             {/* ── LEFT PANEL ── */}
-            <div style={{ width: 360, flexShrink: 0, borderRight: '1px solid #e5e7eb', display: 'flex', flexDirection: 'column', overflow: 'hidden', background: '#fafafa' }}>
+            <div className="hrms-fluid-panel" style={{ width: 360, flexShrink: 0, borderRight: '1px solid #e5e7eb', display: 'flex', flexDirection: 'column', overflow: 'hidden', background: '#fafafa' }}>
 
                 {/* Search */}
                 <div style={{ padding: '12px', borderBottom: '1px solid #e5e7eb', flexShrink: 0 }}>
@@ -345,18 +356,18 @@ export default function OfferLinksManager() {
                 </div>
 
                 {/* Status tabs */}
-                <div style={{ padding: '0 8px', borderBottom: '1px solid #e5e7eb', display: 'flex', gap: 2, overflowX: 'auto', flexShrink: 0, background: '#fff' }}>
+                <div className="hrms-responsive-toolbar" style={{ padding: '0 8px', borderBottom: '1px solid #e5e7eb', display: 'flex', gap: 2, overflowX: 'auto', flexShrink: 0, background: '#fff' }}>
                     {tabs.map(t => (
                         <button key={t.key} onClick={() => setFilter(t.key)}
-                            style={{ padding: '8px 10px', border: 'none', background: 'none', cursor: 'pointer', fontSize: 12, fontWeight: filter === t.key ? 700 : 500, color: filter === t.key ? '#6366f1' : '#6b7280', borderBottom: filter === t.key ? '2px solid #6366f1' : '2px solid transparent', whiteSpace: 'nowrap' }}>
+                            style={{ padding: '8px 10px', border: 'none', background: 'none', cursor: 'pointer', fontSize: 12, fontWeight: filter === t.key ? 700 : 500, color: filter === t.key ? "#1f4e79" : '#6b7280', borderBottom: filter === t.key ? '2px solid #6366f1' : '2px solid transparent', whiteSpace: 'nowrap' }}>
                             {t.label}
-                            {t.count > 0 && <span style={{ background: filter === t.key ? '#e0e7ff' : '#f3f4f6', color: filter === t.key ? '#4338ca' : '#6b7280', borderRadius: 10, padding: '1px 5px', fontSize: 10, marginLeft: 4 }}>{t.count}</span>}
+                            {t.count > 0 && <span style={{ background: filter === t.key ? "#dce3eb" : '#f3f4f6', color: filter === t.key ? "#173a5c" : '#6b7280', borderRadius: 10, padding: '1px 5px', fontSize: 10, marginLeft: 4 }}>{t.count}</span>}
                         </button>
                     ))}
                 </div>
 
                 {/* Refresh row */}
-                <div style={{ padding: '8px 12px', borderBottom: '1px solid #e5e7eb', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexShrink: 0, background: '#fff' }}>
+                <div className="hrms-responsive-toolbar" style={{ padding: '8px 12px', borderBottom: '1px solid #e5e7eb', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexShrink: 0, background: '#fff' }}>
                     <span style={{ fontSize: 12, color: '#9ca3af' }}>{filtered.length} offer{filtered.length !== 1 ? 's' : ''}</span>
                     <button onClick={load} style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '4px 10px', border: '1px solid #e5e7eb', borderRadius: 7, background: '#f9fafb', cursor: 'pointer', fontSize: 12, color: '#374151' }}>
                         <RefreshCw size={12} /> Refresh
@@ -380,7 +391,7 @@ export default function OfferLinksManager() {
                         const busy = actioning === l.id;
                         return (
                             <div key={l.id} onClick={() => selectLink(l)}
-                                style={{ padding: '12px 14px', borderBottom: '1px solid #f3f4f6', cursor: 'pointer', background: isSelected ? '#eef2ff' : '#fff', borderLeft: isSelected ? '3px solid #6366f1' : '3px solid transparent', transition: 'background 0.1s' }}>
+                                style={{ padding: '12px 14px', borderBottom: '1px solid #f3f4f6', cursor: 'pointer', background: isSelected ? "#eef4fb" : '#fff', borderLeft: isSelected ? '3px solid #6366f1' : '3px solid transparent', transition: 'background 0.1s' }}>
 
                                 {/* Row 1 */}
                                 <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
@@ -444,7 +455,7 @@ export default function OfferLinksManager() {
                                             <UserPlus size={11} /> Approve
                                         </button>
                                     )}
-                                    {isSelected && <ChevronRight size={14} color="#6366f1" style={{ marginLeft: 'auto' }} />}
+                                    {isSelected && <ChevronRight size={14} color="#1f4e79" style={{ marginLeft: 'auto' }} />}
                                 </div>
                             </div>
                         );
@@ -515,7 +526,7 @@ export default function OfferLinksManager() {
                                 </div>
                             </div>
                             {/* Right-panel action buttons */}
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: 8, flexShrink: 0 }}>
+                            <div className="" style={{ display: 'flex', flexDirection: 'column', gap: 8, flexShrink: 0 }}>
                                 {['pending', 'accepted'].includes(selSt) && (
                                     <button onClick={e => copyLink(e, selected.token)}
                                         style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '7px 14px', border: '1px solid #e5e7eb', borderRadius: 8, background: copied === selected.token ? '#d1fae5' : '#f9fafb', cursor: 'pointer', fontSize: 13, fontWeight: 600, color: copied === selected.token ? '#065f46' : '#374151' }}>
@@ -545,10 +556,10 @@ export default function OfferLinksManager() {
                                     </div>
                                     <span style={{ fontSize: 13, fontWeight: 700, color: '#14532d', textTransform: 'uppercase', letterSpacing: 0.6 }}>Employee Account Created</span>
                                 </div>
-                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 14 }}>
+                                <div className="hrms-responsive-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 14 }}>
                                     <div>
                                         <span style={{ fontSize: 11, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: 0.6, fontWeight: 600, display: 'block', marginBottom: 3 }}>Employee ID</span>
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                        <div className="hrms-responsive-toolbar" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                                             <span style={{ fontSize: 14, fontWeight: 700, color: '#111827', fontFamily: 'monospace' }}>{selected.created_employee_id}</span>
                                             <button onClick={e => copyValue(e, `empid-${selected.id}`, selected.created_employee_id)} title="Copy" style={{ background: 'none', border: 'none', cursor: 'pointer', color: copied === `empid-${selected.id}` ? '#16a34a' : '#9ca3af', padding: 2 }}>
                                                 {copied === `empid-${selected.id}` ? <CheckCircle size={13} /> : <Copy size={13} />}
@@ -557,7 +568,7 @@ export default function OfferLinksManager() {
                                     </div>
                                     <div>
                                         <span style={{ fontSize: 11, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: 0.6, fontWeight: 600, display: 'block', marginBottom: 3 }}>Login Email</span>
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                        <div className="hrms-responsive-toolbar" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                                             <span style={{ fontSize: 14, fontWeight: 600, color: '#111827' }}>{subData?.email || '—'}</span>
                                             {subData?.email && (
                                                 <button onClick={e => copyValue(e, `email-${selected.id}`, subData.email)} title="Copy" style={{ background: 'none', border: 'none', cursor: 'pointer', color: copied === `email-${selected.id}` ? '#16a34a' : '#9ca3af', padding: 2 }}>
@@ -569,7 +580,7 @@ export default function OfferLinksManager() {
                                     <div>
                                         <span style={{ fontSize: 11, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: 0.6, fontWeight: 600, display: 'block', marginBottom: 3 }}>Temporary Password</span>
                                         {selected.temp_password ? (
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                            <div className="hrms-responsive-toolbar" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                                                 <span style={{ fontSize: 14, fontWeight: 700, color: '#92400e', fontFamily: 'monospace' }}>{selected.temp_password}</span>
                                                 <button onClick={e => copyValue(e, `pwd-${selected.id}`, selected.temp_password)} title="Copy" style={{ background: 'none', border: 'none', cursor: 'pointer', color: copied === `pwd-${selected.id}` ? '#16a34a' : '#9ca3af', padding: 2 }}>
                                                     {copied === `pwd-${selected.id}` ? <CheckCircle size={13} /> : <Copy size={13} />}
@@ -607,7 +618,7 @@ export default function OfferLinksManager() {
                             ) : subData ? (
                                 <>
                                     {/* Edit toolbar */}
-                                    <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginBottom: 12 }}>
+                                    <div className="hrms-responsive-toolbar" style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginBottom: 12 }}>
                                         {editMode ? (
                                             <>
                                                 <button onClick={cancelEdit} disabled={savingEdit}
@@ -622,7 +633,7 @@ export default function OfferLinksManager() {
                                             </>
                                         ) : (
                                             <button onClick={startEdit}
-                                                style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '7px 14px', border: '1px solid #c7d2fe', borderRadius: 8, background: '#eef2ff', cursor: 'pointer', fontSize: 13, fontWeight: 600, color: '#4338ca' }}>
+                                                style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '7px 14px', border: '1px solid #c7d2fe', borderRadius: 8, background: "#eef4fb", cursor: 'pointer', fontSize: 13, fontWeight: 600, color: "#173a5c" }}>
                                                 <Pencil size={13} /> Edit
                                             </button>
                                         )}
@@ -661,7 +672,7 @@ export default function OfferLinksManager() {
                                             <div>
                                                 <span style={{ fontSize: 11, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: 0.6, fontWeight: 600, display: 'block' }}>LinkedIn Profile</span>
                                                 {subData.linkedin_url ? (
-                                                    <a href={subData.linkedin_url} target="_blank" rel="noopener noreferrer" style={{ fontSize: 13, color: '#2563eb', fontWeight: 500, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                                                    <a href={subData.linkedin_url} target="_blank" rel="noopener noreferrer" style={{ fontSize: 13, color: "#1f4e79", fontWeight: 500, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
                                                         <ExternalLink size={13} /> View Profile
                                                     </a>
                                                 ) : (
@@ -714,8 +725,8 @@ export default function OfferLinksManager() {
                                     {/* Documents */}
                                     <div style={{ marginBottom: 20 }}>
                                         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
-                                            <div style={{ width: 28, height: 28, borderRadius: 7, background: '#e0e7ff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                                <FileText size={14} color="#4338ca" />
+                                            <div style={{ width: 28, height: 28, borderRadius: 7, background: "#dce3eb", display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                                <FileText size={14} color="#173a5c" />
                                             </div>
                                             <span style={{ fontSize: 13, fontWeight: 700, color: '#374151', textTransform: 'uppercase', letterSpacing: 0.6 }}>Documents</span>
                                         </div>

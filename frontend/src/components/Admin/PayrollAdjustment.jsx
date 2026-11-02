@@ -1,3 +1,4 @@
+import PaginatedTable from '../Common/PaginatedTable';
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Spinner, Button } from 'react-bootstrap';
 import {
@@ -279,10 +280,10 @@ const PayrollAdjustment = () => {
 
       {/* ── Page Header ──────────────────────────────────────────────────────── */}
       <div style={{ marginBottom: 24 }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
+        <div className="hrms-responsive-toolbar" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <div style={{ width: 36, height: 36, borderRadius: 10, background: '#eef2ff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <FaMoneyBillWave size={16} color="#6366f1" />
+            <div style={{ width: 36, height: 36, borderRadius: 10, background: "#eef4fb", display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <FaMoneyBillWave size={16} color="#1f4e79" />
             </div>
             <h1 style={{ margin: 0, fontSize: 20, fontWeight: 800, color: '#1e293b' }}>Payroll Adjustment</h1>
           </div>
@@ -300,7 +301,7 @@ const PayrollAdjustment = () => {
 
       {/* ── Controls bar ─────────────────────────────────────────────────────── */}
       <div style={{ background: '#fff', borderRadius: 12, padding: '16px 20px', boxShadow: '0 1px 6px rgba(0,0,0,0.06)', marginBottom: 20, display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        <div className="hrms-responsive-toolbar" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <label style={{ fontSize: 12, fontWeight: 600, color: '#475569' }}>Year</label>
           <select
             value={year}
@@ -310,7 +311,7 @@ const PayrollAdjustment = () => {
             {YEARS.map(y => <option key={y} value={y}>{y}</option>)}
           </select>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        <div className="hrms-responsive-toolbar" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <label style={{ fontSize: 12, fontWeight: 600, color: '#475569' }}>Month</label>
           <select
             value={month}
@@ -329,7 +330,7 @@ const PayrollAdjustment = () => {
           {loading ? 'Loading…' : 'Load Payroll'}
         </button>
 
-        <div style={{ marginLeft: 'auto', display: 'flex', gap: 8 }}>
+        <div className="hrms-responsive-toolbar" style={{ marginLeft: 'auto', display: 'flex', gap: 8 }}>
           <button
             onClick={handleSaveAll}
             disabled={dirtyCount === 0}
@@ -352,7 +353,7 @@ const PayrollAdjustment = () => {
           <span style={{ fontSize: 12, fontWeight: 700, color: '#1e293b' }}>
             Bulk PF / PT{selectedIds.size > 0 ? ` — ${selectedIds.size} selected` : ''}
           </span>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <div className="hrms-responsive-toolbar" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <label style={{ fontSize: 12, fontWeight: 600, color: '#475569' }}>PF (₹)</label>
             <input
               type="number" min="0" step="1" placeholder="e.g. 1800"
@@ -361,7 +362,7 @@ const PayrollAdjustment = () => {
               style={{ width: 90, padding: '6px 8px', fontSize: 12, borderRadius: 8, border: '1px solid #e2e8f0', outline: 'none' }}
             />
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <div className="hrms-responsive-toolbar" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <label style={{ fontSize: 12, fontWeight: 600, color: '#475569' }}>PT (₹)</label>
             <input
               type="number" min="0" step="1" placeholder="e.g. 200"
@@ -375,7 +376,7 @@ const PayrollAdjustment = () => {
             disabled={selectedIds.size === 0}
             style={{
               ...primaryBtn,
-              background: selectedIds.size > 0 ? '#6366f1' : '#e2e8f0',
+              background: selectedIds.size > 0 ? "#1f4e79" : '#e2e8f0',
               color:      selectedIds.size > 0 ? '#fff'    : '#94a3b8',
               cursor:     selectedIds.size === 0 ? 'not-allowed' : 'pointer',
             }}
@@ -392,7 +393,7 @@ const PayrollAdjustment = () => {
       {records.length > 0 && (
         <div style={{ display: 'flex', gap: 12, marginBottom: 20, flexWrap: 'wrap' }}>
           {[
-            { label: 'Employees',       value: records.length,          color: '#6366f1', suffix: '' },
+            { label: 'Employees',       value: records.length,          color: "#1f4e79", suffix: '' },
             { label: 'Slips Generated', value: summary.hasSlip,         color: '#0369a1', suffix: '' },
             { label: 'Total OT',        value: fmt(summary.totalOT),    color: '#16a34a', suffix: '' },
             { label: 'Total Deductions',value: fmt(summary.totalDeduct),color: '#dc2626', suffix: '' },
@@ -423,7 +424,7 @@ const PayrollAdjustment = () => {
       <div style={{ background: '#fff', borderRadius: 12, boxShadow: '0 1px 6px rgba(0,0,0,0.06)', overflow: 'hidden' }}>
         {loading ? (
           <div style={{ textAlign: 'center', padding: 60 }}>
-            <Spinner animation="border" style={{ color: '#6366f1' }} />
+            <Spinner animation="border" style={{ color: "#1f4e79" }} />
             <div style={{ marginTop: 14, fontSize: 13, color: '#94a3b8' }}>Loading payroll data…</div>
           </div>
         ) : records.length === 0 ? (
@@ -433,7 +434,7 @@ const PayrollAdjustment = () => {
           </div>
         ) : (
           <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
+            <PaginatedTable searchable style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
               <thead>
                 <tr style={{ background: '#1e3a5f', color: '#fff' }}>
                   <th style={{ padding: '11px 12px', textAlign: 'center', borderRight: '1px solid rgba(255,255,255,0.08)', width: 36 }}>
@@ -653,7 +654,7 @@ const PayrollAdjustment = () => {
                   );
                 })}
               </tbody>
-            </table>
+            </PaginatedTable>
           </div>
         )}
       </div>
@@ -678,7 +679,7 @@ const selectStyle = {
 
 const primaryBtn = {
   padding: '7px 14px', fontSize: 12, borderRadius: 8, border: 'none',
-  background: '#6366f1', color: '#fff', cursor: 'pointer', fontWeight: 600,
+  background: "#1f4e79", color: '#fff', cursor: 'pointer', fontWeight: 600,
   display: 'flex', alignItems: 'center', gap: 6,
 };
 

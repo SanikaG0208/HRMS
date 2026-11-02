@@ -3,6 +3,7 @@ const { sendLeaveStatusEmail, sendLeaveAppliedEmail } = require('../services/ema
 const { HR_ROLES } = require('../config/roleGroups');
 const { getTeamEmployeeIdsByEmployeeId } = require('../utils/employeeLookup');
 const {
+    calculateLeaveDays,
     PAID_LEAVE_ELIGIBILITY_MONTHS,
     MONTHLY_ACCRUAL_RATE,
     getTotalMonthsFromJoining,
@@ -376,11 +377,16 @@ exports.applyLeave = async (req, res) => {
     try {
         const {
             employee_id, leave_type, leave_duration, half_day_type,
-            start_date, end_date, reason, days_count, reporting_manager
+            start_date, end_date, reason, reporting_manager
         } = req.body;
 
         if (!employee_id || !leave_type || !start_date || !reason) {
             return res.status(400).json({ success: false, message: 'Missing required fields' });
+        }
+
+        const trimmedReason = typeof reason === 'string' ? reason.trim() : '';
+        if (trimmedReason.length < 10 || trimmedReason.length > 500) {
+            return res.status(400).json({ success: false, message: 'Reason must be between 10 and 500 characters, excluding leading and trailing spaces.' });
         }
 
         // Guards against malformed dates (e.g. a stray extra "20" prefix on the year — seen
@@ -392,6 +398,14 @@ exports.applyLeave = async (req, res) => {
             return res.status(400).json({ success: false, message: 'Invalid date format for leave request' });
         }
 
+        if (end_date && start_date > end_date) {
+            return res.status(400).json({ success: false, message: 'End date cannot be before start date' });
+        }
+        const days_count = calculateLeaveDays(start_date, end_date || start_date, leave_duration);
+        if (days_count === 0) {
+            return res.status(400).json({ success: false, message: 'Select at least one working day. Saturdays and Sundays are excluded.' });
+        }
+
         if (!reporting_manager || !reporting_manager.trim()) {
             return res.status(400).json({ success: false, message: 'Reporting manager is required' });
         }
@@ -400,6 +414,14 @@ exports.applyLeave = async (req, res) => {
             .from('employees').select('joining_date, comp_off_balance, first_name, last_name, dob')
             .eq('employee_id', employee_id).single();
         if (empError) throw empError;
+
+        const employmentStart = employee?.joining_date?.slice(0, 10);
+        if (!employmentStart) {
+            return res.status(400).json({ success: false, message: 'Joining date is unavailable. Please contact HR.' });
+        }
+        if (start_date < employmentStart) {
+            return res.status(400).json({ success: false, message: 'Leave cannot start before your joining date.' });
+        }
 
         // ── Birthday Leave — special handling ────────────────────────────────
         if (leave_type === 'Birthday') {
@@ -494,7 +516,7 @@ exports.applyLeave = async (req, res) => {
                 half_day_type: half_day_type || null,
                 start_date,
                 end_date: end_date || start_date,
-                reason,
+                reason: trimmedReason,
                 days_count: days_count || 1,
                 reporting_manager: reporting_manager.trim(),
                 ...statusFields,
@@ -549,7 +571,7 @@ exports.applyLeave = async (req, res) => {
                                 startDate: start_date,
                                 endDate: end_date || start_date,
                                 daysCount: days_count || 1,
-                                reason,
+                                reason: trimmedReason,
                             },
                             Array.from(recipientMap.values())
                         );
@@ -710,7 +732,9 @@ exports.updateLeaveStatus = async (req, res) => {
         // - Regular employee's leave: their reporting manager or admin can approve/reject
         // - Employee can cancel their own leave
         if (status === 'cancelled') {
-            // Employee cancelling own leave - allow
+            if (leave.employee_id !== approver_id && !['admin', 'sub_admin', 'hr'].includes(userRole)) {
+                return res.status(403).json({ success: false, message: 'You can only cancel your own leave' });
+            }
         } else if (userRole === 'admin' || userRole === 'hr') {
             // Admin/HR can approve/reject any leave request
         } else {
@@ -736,6 +760,10 @@ exports.updateLeaveStatus = async (req, res) => {
             }
         }
 
+        if (leave.status === status) {
+            if (status === 'approved') await syncAttendanceForApprovedLeave(leave);
+            return res.json({ success: true, message: 'Leave already has this status', leave });
+        }
         const IST_OFFSET_MS = 5.5 * 60 * 60 * 1000;
         const nowIST = new Date(Date.now() + IST_OFFSET_MS);
         const updatedAtIST = `${nowIST.getUTCFullYear()}-${String(nowIST.getUTCMonth()+1).padStart(2,'0')}-${String(nowIST.getUTCDate()).padStart(2,'0')} ${String(nowIST.getUTCHours()).padStart(2,'0')}:${String(nowIST.getUTCMinutes()).padStart(2,'0')}:${String(nowIST.getUTCSeconds()).padStart(2,'0')}`;
@@ -921,11 +949,11 @@ exports.getOnLeaveToday = async (req, res) => {
             scope = 'department';
         }
 
-        const today = new Date().toISOString().split('T')[0];
+        const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
 
         const { data: leaves, error: leavesErr } = await supabase
             .from('leaves')
-            .select('employee_id, leave_type, start_date, end_date')
+            .select('employee_id, leave_type, start_date, end_date, reason, approved_by')
             .eq('status', 'approved')
             .lte('start_date', today)
             .gte('end_date', today);
@@ -935,7 +963,9 @@ exports.getOnLeaveToday = async (req, res) => {
             return res.json({ success: true, scope, date: today, count: 0, employees: [] });
         }
 
-        const empIds = [...new Set(leaves.map(l => l.employee_id))];
+        const actualLeaves = leaves.filter(l => !(l.approved_by === 'SYSTEM' && l.reason === 'Auto-generated: No attendance recorded'));
+        const empIds = [...new Set(actualLeaves.map(l => l.employee_id))];
+        if (!empIds.length) return res.json({ success: true, scope, date: today, count: 0, employees: [] });
         const { data: emps, error: empsErr } = await supabase
             .from('employees')
             .select('employee_id, first_name, last_name, department, designation, profile_image, reporting_manager')
@@ -965,8 +995,14 @@ exports.getOnLeaveToday = async (req, res) => {
             return (e.department || '').toLowerCase() === targetDept;
         });
 
-        const result = scoped.map(e => {
-            const leave = leaves.find(l => l.employee_id === e.employee_id);
+        // Approved leave remains in the leave ledger; actual clock-in wins in this live widget.
+        const { data: attendance, error: attendanceErr } = await supabase
+            .from('attendance').select('employee_id, clock_in, clock_in_ist')
+            .eq('attendance_date', today).in('employee_id', empIds);
+        if (attendanceErr) throw attendanceErr;
+        const clockedIn = new Set((attendance || []).filter(a => a.clock_in || a.clock_in_ist).map(a => a.employee_id));
+        const result = scoped.filter(e => !clockedIn.has(e.employee_id)).map(e => {
+            const leave = actualLeaves.find(l => l.employee_id === e.employee_id);
             return {
                 employee_id: e.employee_id,
                 first_name: e.first_name,

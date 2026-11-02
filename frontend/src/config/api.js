@@ -20,6 +20,9 @@ if (import.meta.env.DEV) {
 const ep = (path) => path;
 
 export const API_ENDPOINTS = {
+  EMPLOYMENT_LETTER_DATA: id => ep('/api/employment-letters/employee/' + encodeURIComponent(id) + '/data'),
+  EMPLOYMENT_LETTER_PREVIEW: id => ep('/api/employment-letters/employee/' + encodeURIComponent(id) + '/preview'),
+  EMPLOYMENT_LETTER_SEND: id => ep('/api/employment-letters/employee/' + encodeURIComponent(id) + '/send'),
   // Manager
   MANAGER_TEAM:         ep('/api/employees/manager/team'),
   MANAGER_UPDATE_SHIFT: (employeeId) => ep(`/api/employees/manager/shift/${employeeId}`),
@@ -57,6 +60,7 @@ export const API_ENDPOINTS = {
   EMPLOYEE_COMPLETE_PROFILE:       ep('/api/employees/complete-profile'),
   EMPLOYEE_RESET_PROFILE:          (id) => ep(`/api/employees/${id}/reset-profile`),
   EMPLOYEE_TOGGLE_PROFILE_FORM:    (id) => ep(`/api/employees/${id}/toggle-profile-form`),
+  EMPLOYEE_ONBOARDING_TICKETS:     (id) => ep(`/api/employees/${id}/onboarding-tickets`),   // re-raise missing onboarding tickets; never creates the employee
   EMPLOYEE_UPDATE_ROLE: (id) => ep(`/api/employees/${id}/role`),
   EMPLOYEE_RESET_PASSWORD:   (id) => ep(`/api/employees/${id}/reset-password`),
   EMPLOYEE_TOGGLE_STATUS:    (id) => ep(`/api/employees/${id}/toggle-status`),

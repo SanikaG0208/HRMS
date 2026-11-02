@@ -24,6 +24,7 @@ import API_ENDPOINTS from '../../config/api';
 import { useAuth } from '../../context/AuthContext';
 import { useNotification } from '../../context/NotificationContext';
 import { EMPLOYEE_POLICY_HANDBOOK as DEFAULT_CONTRACT_POLICY } from '../../data/employeePolicyHandbook';
+import { describeCreateSuccess, describeCreateError, retryOnboardingTickets, redactForDisplay } from '../../utils/addEmployeeOutcome';
 
 const AddEmployee = () => {
   const navigate = useNavigate();
@@ -40,7 +41,11 @@ const AddEmployee = () => {
   const [acceptPolicy, setAcceptPolicy] = useState(false);
   const [debugInfo, setDebugInfo] = useState(null);
   const [employeeId, setEmployeeId] = useState('');
+  // Set when the employee was created but some onboarding tickets failed: { id, employeeId, failedDepartments, message }
+  const [ticketWarning, setTicketWarning] = useState(null);
+  const [retryingTickets, setRetryingTickets] = useState(false);
   const [managers, setManagers] = useState([]);
+  const [subAdmins, setSubAdmins] = useState([]);
   const [hrEmployees, setHrEmployees] = useState([]);
 
   // Track completed tabs
@@ -127,11 +132,13 @@ const AddEmployee = () => {
   useEffect(() => {
     const fetchManagers = async () => {
       try {
-        const [tlRes, hrRes] = await Promise.all([
+        const [tlRes, managerRes, hrRes] = await Promise.all([
           axios.get(API_ENDPOINTS.TEAMS_MANAGERS_LIST),
+          axios.get(API_ENDPOINTS.TEAMS_SUB_ADMINS_LIST),
           axios.get(API_ENDPOINTS.TEAMS_HR_LIST),
         ]);
         setManagers(tlRes.data.managers || []);
+        setSubAdmins(managerRes.data.managers || []);
         setHrEmployees(hrRes.data.managers || []);
       } catch (err) {
         console.error('Error fetching managers:', err);
@@ -471,8 +478,9 @@ const AddEmployee = () => {
         contract_policy: tempPolicyData.contract_policy || null
       };
 
-      console.log('📦 Submitting employee data:', JSON.stringify(employeeData, null, 2));
-      setDebugInfo(employeeData);
+      // Never show or log the initial password, which is a working login credential.
+      console.log('📦 Submitting employee data:', JSON.stringify(redactForDisplay(employeeData), null, 2));
+      setDebugInfo(redactForDisplay(employeeData));
 
       // Create employee — employee_id is assigned server-side; the response is the only
       // source of truth for it (see backend/routes/employeeRoutes.js POST / handler, which
@@ -491,55 +499,65 @@ const AddEmployee = () => {
       setEmployeeId(createdEmployeeId);
       console.log('✅ Final Employee ID:', createdEmployeeId);
 
-      setSuccess('Employee added successfully!');
-      showNotification('Employee added successfully!', 'success');
+      const outcome = describeCreateSuccess(response.data);
+      if (outcome.variant === 'warning') {
+        // The employee exists; only onboarding tickets failed. Stay on this page so HR can retry them.
+        setTicketWarning({ id: outcome.employee.id, employeeId: createdEmployeeId, failedDepartments: outcome.failedDepartments, message: outcome.message });
+        showNotification(outcome.message, 'warning');
+      } else {
+        setSuccess(outcome.message);
+        showNotification(outcome.message, 'success');
+      }
 
       // Upload documents if any
       if (selectedFiles.length > 0) {
         await uploadDocuments(createdEmployeeId);
       }
 
-      // Navigate back after delay
-      setTimeout(() => {
-        navigate('/admin/employees');
-      }, 2000);
+      // Navigate back after delay (not while there are onboarding tickets to retry)
+      if (outcome.variant !== 'warning') {
+        setTimeout(() => {
+          navigate('/admin/employees');
+        }, 2000);
+      }
 
     } catch (error) {
       console.error('❌ Error adding employee:', error);
       console.error('Error response:', error.response?.data);
       console.error('Error status:', error.response?.status);
 
-      let errorMsg = 'Failed to add employee';
-
-      if (error.response) {
-        const errorData = error.response.data;
-
-        if (error.response.status === 400) {
-          if (errorData.field) {
-            errorMsg = `${errorData.field.replace(/_/g, ' ')} '${errorData.value}' already exists. Please use a different value.`;
-          } else if (errorData.message) {
-            errorMsg = errorData.message;
-          } else {
-            errorMsg = 'Please check all fields and try again.';
-          }
-        } else if (error.response.status === 401 || error.response.status === 403) {
-          errorMsg = 'You are not authorized to add employees. Please login again.';
-        } else if (error.response.status === 500) {
-          errorMsg = 'Server error. Please try again later.';
-        } else {
-          errorMsg = errorData?.message || `Server error: ${error.response.status}`;
-        }
-      } else if (error.request) {
-        errorMsg = 'No response from server. Please check if backend is running.';
-      } else {
-        errorMsg = error.message;
-      }
+      const errorMsg = describeCreateError(error, { email: tempPersonalData.email?.trim().toLowerCase() });
 
       setError(errorMsg);
       showNotification(errorMsg, 'danger');
       setEmployeeId('');
     } finally {
       setSaving(false);
+    }
+  };
+
+  // Re-raise only the failed onboarding tickets for the employee just created. Never re-creates
+  // the employee. The button is disabled while this runs, so a double click can't raise duplicates.
+  const handleRetryOnboardingTickets = async () => {
+    if (!ticketWarning?.id || retryingTickets) return;
+    setRetryingTickets(true);
+    try {
+      const result = await retryOnboardingTickets(
+        (url, payload) => axios.post(url, payload),
+        API_ENDPOINTS.EMPLOYEE_ONBOARDING_TICKETS(ticketWarning.id),
+        ticketWarning.failedDepartments,
+      );
+      if (result.ok) {
+        setTicketWarning(null);
+        setSuccess(`Employee ${ticketWarning.employeeId} added successfully. ${result.message}`);
+        showNotification(result.message, 'success');
+        setTimeout(() => navigate('/admin/employees'), 2000);
+      } else {
+        setTicketWarning((prev) => ({ ...prev, failedDepartments: result.failedDepartments, message: result.message }));
+        showNotification(result.message, 'warning');
+      }
+    } finally {
+      setRetryingTickets(false);
     }
   };
 
@@ -666,6 +684,21 @@ const AddEmployee = () => {
       {success && (
         <Alert variant="success" onClose={() => setSuccess('')} dismissible className="mb-3">
           <small>{success}</small>
+        </Alert>
+      )}
+
+      {ticketWarning && (
+        <Alert variant="warning" className="mb-3">
+          <div className="small mb-2">{ticketWarning.message}</div>
+          <div className="small mb-2"><strong>Failed:</strong> {ticketWarning.failedDepartments.join(', ')}</div>
+          <div className="d-flex gap-2 flex-wrap">
+            <Button size="sm" variant="warning" disabled={retryingTickets} onClick={handleRetryOnboardingTickets}>
+              {retryingTickets ? <><Spinner size="sm" className="me-1" />Retrying…</> : 'Retry onboarding tickets'}
+            </Button>
+            <Button size="sm" variant="outline-secondary" disabled={retryingTickets} onClick={() => navigate('/admin/employees')}>
+              Go to Employee List
+            </Button>
+          </div>
         </Alert>
       )}
 
@@ -858,7 +891,19 @@ const AddEmployee = () => {
                         {managers.length > 0 && (
                           <optgroup label="Team Leaders">
                             {managers.map(m => {
-                              const fullName = `${m.first_name} ${m.last_name}`.trim();
+                              const fullName = [m.first_name, m.last_name].filter(Boolean).map(n => n.trim()).join(' ');
+                              return (
+                                <option key={m.employee_id} value={fullName}>
+                                  {fullName} ({m.designation})
+                                </option>
+                              );
+                            })}
+                          </optgroup>
+                        )}
+                        {subAdmins.length > 0 && (
+                          <optgroup label="Managers">
+                            {subAdmins.map(m => {
+                              const fullName = [m.first_name, m.last_name].filter(Boolean).map(n => n.trim()).join(' ');
                               return (
                                 <option key={m.employee_id} value={fullName}>
                                   {fullName} ({m.designation})
@@ -870,7 +915,7 @@ const AddEmployee = () => {
                         {hrEmployees.length > 0 && (
                           <optgroup label="HR">
                             {hrEmployees.map(m => {
-                              const fullName = `${m.first_name} ${m.last_name}`.trim();
+                              const fullName = [m.first_name, m.last_name].filter(Boolean).map(n => n.trim()).join(' ');
                               return (
                                 <option key={m.employee_id} value={fullName}>
                                   {fullName} ({m.designation})

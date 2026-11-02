@@ -513,6 +513,20 @@ exports.autoCloseStaleSessions = async () => {
     }
 };
 
+// Clock-in/out, missed clock-out and heartbeat are self-service punches: the body's
+// employee_id must be the caller's own (from the verified JWT). Without this, any logged-in
+// user could punch in or out, or close a missed clock-out, for any colleague just by sending
+// their ID. Every frontend caller already sends the user's own ID. Corrections for someone
+// else go through the admin-only /admin/mark route or the regularization workflow, which
+// this doesn't touch. Sends the 403 and returns true when the request must stop.
+const rejectUnlessOwnAttendance = (req, res, employeeId) => {
+    const callerEmployeeId = req.user?.employeeId;
+    if (callerEmployeeId && employeeId && String(employeeId) === String(callerEmployeeId)) return false;
+    console.warn(`⛔ [attendance] ${req.method} ${req.originalUrl} rejected — caller ${callerEmployeeId || '(none)'} tried to act for ${employeeId || '(none)'}`);
+    res.status(403).json({ success: false, message: 'You can only record your own attendance', code: 'NOT_OWN_ATTENDANCE' });
+    return true;
+};
+
 // Clock In function - Complete version
 exports.clockIn = async (req, res) => {
     try {
@@ -520,6 +534,7 @@ exports.clockIn = async (req, res) => {
         if (!employee_id) {
             return res.status(400).json({ success: false, message: 'Employee ID is required' });
         }
+        if (rejectUnlessOwnAttendance(req, res, employee_id)) return;
 
         const { data: employees } = await supabase
             .from('employees')
@@ -580,7 +595,6 @@ exports.clockIn = async (req, res) => {
         if (activeSessions && activeSessions.length > 0) {
             const activeSession = activeSessions[0];
 
-            // ✅ STALE SESSION CHECK: If attendance for this session already has clock_out, auto-fix it
             const { data: staleAtt } = await supabase
                 .from('attendance')
                 .select('id, clock_out, clock_out_ist, attendance_date')
@@ -596,7 +610,6 @@ exports.clockIn = async (req, res) => {
                     .update({ is_active: false, clock_out_time: staleAtt.clock_out })
                     .eq('session_id', activeSession.session_id)
                     .eq('employee_id', employee_id);
-                // Allow clock-in to proceed
             } else {
                 // Check if orphan session (no attendance record at all)
                 const { data: anyAtt } = await supabase
@@ -613,7 +626,6 @@ exports.clockIn = async (req, res) => {
                         .update({ is_active: false, clock_out_time: new Date().toISOString() })
                         .eq('session_id', activeSession.session_id)
                         .eq('employee_id', employee_id);
-                    // Allow clock-in to proceed
                 } else {
                     // Compare using IST dates to avoid UTC midnight mismatch
                     const sessionISTDate = utcMsToISTString(new Date(activeSession.clock_in_time).getTime()).split(' ')[0];
@@ -956,6 +968,7 @@ exports.clockOut = async (req, res) => {
                 message: 'Employee ID is required'
             });
         }
+        if (rejectUnlessOwnAttendance(req, res, employee_id)) return;
 
         let finalSessionId = session_id;
         const now = new Date();
@@ -1249,6 +1262,7 @@ exports.clockOutMissed = async (req, res) => {
         if (!employee_id || !attendance_id) {
             return res.status(400).json({ success: false, message: 'Employee ID and Attendance ID are required' });
         }
+        if (rejectUnlessOwnAttendance(req, res, employee_id)) return;
 
         // Get the attendance record
         const { data: attendance, error: fetchError } = await supabase
@@ -2085,6 +2099,7 @@ exports.getMissedClockOuts = async (req, res) => {
 exports.heartbeat = async (req, res) => {
     try {
         const { employee_id, session_id, latitude, longitude } = req.body;
+        if (rejectUnlessOwnAttendance(req, res, employee_id)) return;
         await supabase
             .from('attendance_sessions')
             .update({ last_heartbeat: new Date().toISOString(), latitude, longitude })
@@ -3386,6 +3401,7 @@ exports.validateAttendanceImport = async (req, res) => {
                 if (date < periodStart || date > periodEnd) {
                     rowErrors.push(`Date ${date} is outside the salary period (${periodStart} to ${periodEnd})`); continue;
                 }
+                if (['L', 'PL', 'CO', 'BL'].includes(code)) { rowErrors.push(`Leave on ${date} must come from an employee request approved through the leave workflow.`); continue; }
                 if (!VALID_CODES.has(code)) { rowErrors.push(`"${raw}" on ${date} — not a recognised code`); continue; }
                 cleanDates[date] = code;
             }
@@ -3673,7 +3689,7 @@ exports.adminMarkAttendance = async (req, res) => {
             return res.status(400).json({ success: false, message: 'employee_id, attendance_date, and status_code are required' });
         }
 
-        const ADMIN_MARK_VALID_CODES = ['present', 'absent', 'half_day', 'week_off', 'holiday', 'leave', 'paid_leave', 'comp_off', 'birthday_leave'];
+        const ADMIN_MARK_VALID_CODES = ['present', 'absent', 'half_day', 'week_off', 'holiday'];
         if (!ADMIN_MARK_VALID_CODES.includes(status_code)) {
             return res.status(400).json({ success: false, message: `Invalid status_code. Must be one of: ${ADMIN_MARK_VALID_CODES.join(', ')}` });
         }

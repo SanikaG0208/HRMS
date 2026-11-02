@@ -256,6 +256,8 @@ const EmployeeDashboard = () => {
 
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [leaveBalanceError, setLeaveBalanceError] = useState(null);
+  const [leaveBalanceLoading, setLeaveBalanceLoading] = useState(true);
   const [employee, setEmployee] = useState(null);
   const [leaveBalance, setLeaveBalance] = useState({
     available: 0,
@@ -670,6 +672,8 @@ const EmployeeDashboard = () => {
   };
 
   const fetchLeaveBalance = async () => {
+    setLeaveBalanceLoading(true);
+    setLeaveBalanceError(null);
     try {
       const response = await axios.get(API_ENDPOINTS.LEAVE_BALANCE(user.employeeId));
       setLeaveBalance({
@@ -686,19 +690,9 @@ const EmployeeDashboard = () => {
       });
     } catch (error) {
       console.error('Error fetching leave balance:', error);
-      setLeaveBalance({
-        available: 0,
-        total_accrued: 0,
-        used: 0,
-        pending: 0,
-        comp_off_balance: 0,
-        total_comp_off_earned: 0,
-        total_comp_off_used: 0,
-        is_eligible: false,
-        months_completed: 0,
-        is_probation_complete: false
-      });
-      showNotification('Failed to load leave balance', 'info');
+      setLeaveBalanceError('Unable to load leave balance.');
+    } finally {
+      setLeaveBalanceLoading(false);
     }
   };
 
@@ -1048,7 +1042,9 @@ const EmployeeDashboard = () => {
       <DashboardQuickAccess
         employeeId={employee?.employee_id}
         leaveBalance={leaveBalance}
-        leaveBalanceLoading={loading}
+        leaveBalanceLoading={leaveBalanceLoading}
+        leaveBalanceError={leaveBalanceError}
+        onRetryLeaveBalance={fetchLeaveBalance}
         onLeaveScope="department"
         department={employee?.department}
         attendance={attendance}
@@ -1070,8 +1066,15 @@ const EmployeeDashboard = () => {
           />
         }
         footerExtra={
-          <div style={{ display: 'flex', gap: 2 }}>
-            {renderStars(allRatings.length > 0 ? allRatings.reduce((s, r) => s + r.rating, 0) / allRatings.length : 0)}
+          <div>
+            <div className="small text-muted mb-1">Performance Rating</div>
+            {allRatings.length > 0 ? (
+              <div style={{ display: 'flex', gap: 2 }}>
+                {renderStars(allRatings.reduce((s, r) => s + r.rating, 0) / allRatings.length)}
+              </div>
+            ) : (
+              <div className="small text-muted">Not rated yet</div>
+            )}
           </div>
         }
       />
@@ -2422,7 +2425,7 @@ const EmployeeDashboard = () => {
         }
         const willBeHalfDay = clockOutPreview.is_clocked_in && clockOutPreview.status_if_clocked_out_now !== 'present';
         return (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.35)', backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div className="hrms-responsive-toolbar" style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.35)', backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <div style={{ background: willBeHalfDay ? '#fff7ed' : '#fff0ec', border: willBeHalfDay ? '1px solid #fb923c' : '1px solid #fdb8a0', borderRadius: 18, padding: '32px 28px', boxShadow: '0 24px 64px rgba(0,0,0,0.22)', textAlign: 'center', maxWidth: 340, width: '90%' }}>
             <div style={{ fontSize: 44, marginBottom: 10 }}>{willBeHalfDay ? '⚠️' : '🕐'}</div>
             <div style={{ fontWeight: 700, fontSize: 18, color: '#111827', marginBottom: 8 }}>
@@ -2441,7 +2444,7 @@ const EmployeeDashboard = () => {
                 'Are you sure you want to clock out?'
               )}
             </div>
-            <div style={{ display: 'flex', gap: 10 }}>
+            <div className="hrms-responsive-toolbar" style={{ display: 'flex', gap: 10 }}>
               <button
                 onClick={() => { setShowClockOutConfirm(false); handleClockOut(); }}
                 style={{ flex: 1, padding: '10px 0', borderRadius: 10, border: 'none', background: willBeHalfDay ? '#ea580c' : '#f97316', color: '#fff', fontWeight: 700, fontSize: 14, cursor: 'pointer' }}

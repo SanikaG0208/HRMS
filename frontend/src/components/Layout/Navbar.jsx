@@ -28,7 +28,8 @@ const ROUTE_LABELS = {
   '/profile':                    'My Profile',
   '/attendance':                 'Daily Attendance',
   '/apply-leave':                'Apply Leave',
-  '/salary-slip':                'Salary Slip',
+  '/salary-slip':                'Payroll',
+  '/employee/deductions': 'Payroll',
   '/employee/update-requests':   'Update Requests',
   '/manager/panel':              'My Team',
   '/admin/teams':                'Teams',
@@ -282,8 +283,7 @@ const Navbar = () => {
   // ─────────────────────────────────────────────────────────────
   return (
     <>
-    <nav
-      style={{
+    <nav className="hrms-app-navbar" style={{
         height: '60px',
         padding: '0 24px',
         position: 'sticky',

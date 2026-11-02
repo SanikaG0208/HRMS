@@ -1,3 +1,4 @@
+import PaginatedTable from '../Common/PaginatedTable';
 import DashboardNotice from '../Common/DashboardNotice';
 // src/components/Admin/AdminDashboard.jsx
 import React, { useState, useEffect, useRef } from 'react';
@@ -814,7 +815,7 @@ const AdminDashboard = () => {
       }
     });
 
-    const onLeave = attendanceData.filter(a => a.is_on_leave || a.status === 'on_leave').length;
+    const onLeave = attendanceData.filter(a => !a.clock_in && (a.is_on_leave || a.status === 'on_leave')).length;
     // A company holiday (static calendar or HOL-button, see getAttendanceReport) has no
     // clock_in and isn't a leave — without excluding it here, every employee on a holiday
     // would silently count as Absent in this deficit-based total.
@@ -992,7 +993,7 @@ const AdminDashboard = () => {
   };
 
   const getStatusBadge = (record) => {
-    if (record.is_on_leave || record.status === 'on_leave') {
+    if (!record.clock_in && (record.is_on_leave || record.status === 'on_leave')) {
       return <Badge bg="purple" style={{ backgroundColor: '#6f42c1' }}><FaUmbrellaBeach className="me-1" size={10} /> On Leave</Badge>;
     }
     if (!record.clock_in) return <Badge bg="secondary">Not Clocked</Badge>;
@@ -1047,13 +1048,14 @@ const AdminDashboard = () => {
       <style>{ADMIN_DASH_MOBILE_CSS}</style>
       {/* Header */}
       <WelcomeBanner
+        portalLabel={user?.role === 'hr' ? 'HR Portal' : 'Admin Portal'}
         name={user?.employeeId}
         roleLabel={['sub_admin', 'hr'].includes(user?.role) ? (user?.role === 'hr' ? 'HR Dashboard' : 'Manager Dashboard') : 'Admin Dashboard'}
         onRefresh={() => { fetchDashboardData(); setLeaveBalancesLoaded(false); setEmployeeLeaveBalances([]); }}
         refreshing={loading}
         onExport={() => setShowExportModal(true)}
         headerExtra={canFilterByTeam && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'rgba(255,255,255,0.15)', borderRadius: 16, padding: '4px 10px 4px 12px' }}>
+          <div className="hrms-responsive-toolbar" style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'rgba(255,255,255,0.15)', borderRadius: 16, padding: '4px 10px 4px 12px' }}>
             <span style={{ fontSize: 11, fontWeight: 600, color: 'rgba(255,255,255,0.85)', whiteSpace: 'nowrap' }}>View Team:</span>
             <select
               value={selectedManagerId}
@@ -1152,7 +1154,7 @@ const AdminDashboard = () => {
 
       {activeTab === 'anniversaries' && (
         <Card className="role-detail-card border-0 shadow-sm">
-          <Card.Header className="role-card-header bg-gradient py-3" style={{ background: 'linear-gradient(135deg, #ffd700 0%, #ffed4e 100%)' }}>
+          <Card.Header className="role-card-header bg-gradient py-3" style={{ background: "#ffd700" }}>
             <div className="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3">
               <div>
                 <h5 className="mb-1 d-flex align-items-center">
@@ -1232,7 +1234,7 @@ const AdminDashboard = () => {
               return (
                 <>
                   <div className="table-responsive">
-                    <Table striped hover className="mb-0 align-middle">
+                    <PaginatedTable as={Table} striped hover className="mb-0 align-middle">
                       <thead className="bg-light sticky-top">
                         <tr className="small">
                           <th className="fw-normal text-center" style={{ width: '5%' }}>#</th>
@@ -1282,7 +1284,7 @@ const AdminDashboard = () => {
                           </tr>
                         )}
                       </tbody>
-                    </Table>
+                    </PaginatedTable>
                   </div>
                   {annTotalPages > 1 && (
                     <div className="d-flex justify-content-between align-items-center mt-3">
@@ -1374,7 +1376,7 @@ const AdminDashboard = () => {
               return (
                 <>
                   <div className="table-responsive">
-                    <Table striped hover className="mb-0 align-middle">
+                    <PaginatedTable as={Table} striped hover className="mb-0 align-middle">
                       <thead className="bg-light sticky-top">
                         <tr className="small">
                           <th className="fw-normal text-center" style={{ width: '5%' }}>#</th>
@@ -1421,7 +1423,7 @@ const AdminDashboard = () => {
                           </tr>
                         )}
                       </tbody>
-                    </Table>
+                    </PaginatedTable>
                   </div>
                   {bdTotalPages > 1 && (
                     <div className="d-flex justify-content-between align-items-center mt-3">
@@ -1678,7 +1680,7 @@ const AdminDashboard = () => {
                         </div>
 
                         {/* Badge-style legend grid */}
-                        <div className="dash-legend-grid" style={{
+                        <div className="dash-legend-grid hrms-responsive-grid" style={{
                           display: 'grid',
                           gridTemplateColumns: '1fr 1fr',
                           gap: 8,
@@ -1735,7 +1737,7 @@ const AdminDashboard = () => {
                         <div style={{
                           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
                           padding: '10px 16px',
-                          background: 'linear-gradient(135deg, #f8fafc, #f1f5f9)',
+                          background: "#eef4fb",
                           borderRadius: 10,
                           border: '1px solid #e2e8f0',
                         }}>
@@ -2037,7 +2039,7 @@ const AdminDashboard = () => {
             </Card.Header>
             <Card.Body className="p-0">
               <div className="table-responsive" style={{ maxHeight: '300px', overflowY: 'auto' }}>
-                <Table striped size="sm" className="mb-0">
+                <PaginatedTable as={Table} striped size="sm" className="mb-0">
                   <thead className="bg-light sticky-top">
                     <tr className="small">
                       <th className="fw-normal text-center">#</th>
@@ -2106,7 +2108,7 @@ const AdminDashboard = () => {
                       </tr>
                     )}
                   </tbody>
-                </Table>
+                </PaginatedTable>
               </div>
               {filteredLeaveRequests.length > 10 && (
                 <div className="p-3 text-center border-top">
@@ -2195,7 +2197,7 @@ const AdminDashboard = () => {
                     </div>
 
                     <div className="table-responsive">
-                      <Table striped hover size="sm" className="mb-0">
+                      <PaginatedTable as={Table} striped hover size="sm" className="mb-0">
                         <thead className="bg-light sticky-top" style={{ top: 0, zIndex: 10 }}>
                           <tr className="small">
                             <th className="fw-normal text-center">#</th>
@@ -2241,7 +2243,7 @@ const AdminDashboard = () => {
                             <tr><td colSpan="8" className="text-center py-4"><p className="text-muted mb-0 small">No employees found matching your search</p></td></tr>
                           )}
                         </tbody>
-                      </Table>
+                      </PaginatedTable>
                     </div>
 
                     {leaveBalanceTotalPages > 1 && (
@@ -2305,7 +2307,7 @@ const AdminDashboard = () => {
         }
         const willBeHalfDay = clockOutPreview.is_clocked_in && clockOutPreview.status_if_clocked_out_now !== 'present';
         return (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div className="hrms-responsive-toolbar" style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <div style={{ background: '#fff', borderRadius: 18, padding: '32px 28px', boxShadow: '0 24px 64px rgba(0,0,0,0.22)', textAlign: 'center', maxWidth: 340, width: '90%' }}>
             <div style={{ fontSize: 44, marginBottom: 10 }}>{willBeHalfDay ? '⚠️' : '🕐'}</div>
             <div style={{ fontWeight: 700, fontSize: 18, color: '#111827', marginBottom: 8 }}>
@@ -2324,7 +2326,7 @@ const AdminDashboard = () => {
                 'Are you sure you want to clock out?'
               )}
             </div>
-            <div style={{ display: 'flex', gap: 10 }}>
+            <div className="hrms-responsive-toolbar" style={{ display: 'flex', gap: 10 }}>
               <button
                 onClick={() => { setShowClockOutConfirm(false); handleSubAdminClockOut(); }}
                 style={{ flex: 1, padding: '10px 0', borderRadius: 10, border: 'none', background: willBeHalfDay ? '#ea580c' : '#f97316', color: '#fff', fontWeight: 700, fontSize: 14, cursor: 'pointer' }}
