@@ -7,7 +7,7 @@ exports.getNotifications = async (req, res) => {
         
         const { data: notifications, error } = await supabase
             .from('notifications')
-            .select('*')
+            .select('id, is_read, type, metadata, title, message, created_at')
             .eq('employee_id', employee_id)
             .order('created_at', { ascending: false })
             .limit(20);
@@ -61,7 +61,7 @@ exports.markAsRead = async (req, res) => {
             .from('notifications')
             .update({ is_read: true })
             .eq('id', id)
-            .select();
+            .select('id');
 
         if (error) throw error;
 
@@ -96,7 +96,7 @@ exports.markAllAsRead = async (req, res) => {
             .update({ is_read: true })
             .eq('employee_id', employee_id)
             .eq('is_read', false)
-            .select();
+            .select('id');
 
         if (error) throw error;
 
@@ -124,7 +124,7 @@ exports.deleteNotification = async (req, res) => {
             .from('notifications')
             .delete()
             .eq('id', id)
-            .select();
+            .select('id');
 
         if (error) throw error;
 
@@ -166,7 +166,7 @@ exports.deleteReadNotifications = async (req, res) => {
             .delete()
             .eq('employee_id', employee_id)
             .eq('is_read', true)
-            .select();
+            .select('id');
 
         if (error) throw error;
 

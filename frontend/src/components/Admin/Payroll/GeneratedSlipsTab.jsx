@@ -11,6 +11,7 @@ import html2canvas from 'html2canvas';
 import { FaEye, FaDownload, FaCheckCircle, FaFileExcel, FaRedo, FaSearch } from 'react-icons/fa';
 import axios from '../../../config/axios';
 import API_ENDPOINTS from '../../../config/api';
+import { getSharedEmployeeProfile } from '../../../utils/sharedEmployeeProfile';
 import { useNotification } from '../../../context/NotificationContext';
 import { MONTHS, getAmounts, buildPDFHTML } from '../../../utils/salarySlipTemplate';
 
@@ -54,7 +55,7 @@ const GeneratedSlipsTab = ({ month, year, cycleLabel, records, refetch }) => {
   const loadSlipAndEmployee = async (rec) => {
     const [slipRes, empRes] = await Promise.all([
       axios.get(API_ENDPOINTS.SALARY_BY_ID(rec.slip_id)),
-      axios.get(API_ENDPOINTS.EMPLOYEE_PROFILE(rec.employee_id)),
+      getSharedEmployeeProfile(rec.employee_id),
     ]);
     return { slip: slipRes.data.salarySlip, employee: empRes.data };
   };

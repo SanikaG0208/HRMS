@@ -1,7 +1,13 @@
 const { v4: uuidv4 } = require('uuid');
 const supabase = require('../config/supabase');
 const { holidays } = require('../data/holidays');
-const { normalizeName, getEmployeeById, getTeamEmployeeIdsByManagerName, getTeamEmployeeIdsByEmployeeId, employeeHasDirectReports } = require('../utils/employeeLookup');
+const {
+    // normalizeName,
+    getEmployeeById,
+    getTeamEmployeeIdsByManagerName,
+    getTeamEmployeeIdsByEmployeeId,
+    // employeeHasDirectReports
+} = require('../utils/employeeLookup');
 const { isFlexibleShiftEnabled, getFlexibleShiftStatus } = require('../utils/flexibleShift');
 const CompanyHolidayService = require('../services/companyHolidayService');
 const { sendEarlyLogoutAppliedEmail } = require('../services/emailService');
@@ -19,23 +25,23 @@ const calculateTimeDifferenceInMinutes = (date1, date2) => {
 };
 
 // Helper function to parse time string
-const parseTimeString = (timeStr) => {
-    if (!timeStr) return null;
-    const ampmMatch = timeStr.match(/(\d{1,2}):(\d{2})\s*(AM|PM)/i);
-    if (ampmMatch) {
-        let hour = parseInt(ampmMatch[1]);
-        const minute = parseInt(ampmMatch[2]);
-        const ampm = ampmMatch[3].toUpperCase();
-        if (ampm === 'PM' && hour !== 12) hour += 12;
-        if (ampm === 'AM' && hour === 12) hour = 0;
-        return { hour, minute };
-    }
-    const militaryMatch = timeStr.match(/(\d{1,2}):(\d{2})/);
-    if (militaryMatch) {
-        return { hour: parseInt(militaryMatch[1]), minute: parseInt(militaryMatch[2]) };
-    }
-    return { hour: 9, minute: 0 };
-};
+// const parseTimeString = (timeStr) => {
+//     if (!timeStr) return null;
+//     const ampmMatch = timeStr.match(/(\d{1,2}):(\d{2})\s*(AM|PM)/i);
+//     if (ampmMatch) {
+//         let hour = parseInt(ampmMatch[1]);
+//         const minute = parseInt(ampmMatch[2]);
+//         const ampm = ampmMatch[3].toUpperCase();
+//         if (ampm === 'PM' && hour !== 12) hour += 12;
+//         if (ampm === 'AM' && hour === 12) hour = 0;
+//         return { hour, minute };
+//     }
+//     const militaryMatch = timeStr.match(/(\d{1,2}):(\d{2})/);
+//     if (militaryMatch) {
+//         return { hour: parseInt(militaryMatch[1]), minute: parseInt(militaryMatch[2]) };
+//     }
+//     return { hour: 9, minute: 0 };
+// };
 
 // Parse shift timing
 const parseShiftTiming = (shiftString) => {
@@ -1643,20 +1649,20 @@ exports.getTodayAttendance = async (req, res) => {
 };
 
 // Helper function to parse IST datetime string
-const parseLocalDateTimeIST = (datetimeStr) => {
-    if (!datetimeStr) return null;
-    if (datetimeStr instanceof Date) return datetimeStr;
-
-    if (typeof datetimeStr === 'string' && datetimeStr.includes(' ')) {
-        const [datePart, timePart] = datetimeStr.split(' ');
-        const [year, month, day] = datePart.split('-');
-        const [hour, minute, second] = timePart.split(':');
-        return new Date(parseInt(year), parseInt(month) - 1, parseInt(day), parseInt(hour), parseInt(minute), parseInt(second || 0));
-    }
-
-    const parsed = new Date(datetimeStr);
-    return isNaN(parsed.getTime()) ? null : parsed;
-};
+// const parseLocalDateTimeIST = (datetimeStr) => {
+//     if (!datetimeStr) return null;
+//     if (datetimeStr instanceof Date) return datetimeStr;
+//
+//     if (typeof datetimeStr === 'string' && datetimeStr.includes(' ')) {
+//         const [datePart, timePart] = datetimeStr.split(' ');
+//         const [year, month, day] = datePart.split('-');
+//         const [hour, minute, second] = timePart.split(':');
+//         return new Date(parseInt(year), parseInt(month) - 1, parseInt(day), parseInt(hour), parseInt(minute), parseInt(second || 0));
+//     }
+//
+//     const parsed = new Date(datetimeStr);
+//     return isNaN(parsed.getTime()) ? null : parsed;
+// };
 
 // Get attendance report
 // Supabase/PostgREST silently caps any query at its default max-rows setting (1000 on this
@@ -2723,7 +2729,7 @@ exports.getTeamAttendanceReport = async (req, res) => {
     try {
         const { start, end, employee_id, view_type } = req.query;
         const managerEmployeeId = req.user?.employeeId;
-        const userRole = req.user?.role;
+        // const userRole = req.user?.role;
 
         console.log('📊 Fetching team attendance report for manager:', managerEmployeeId);
         console.log('Query params:', { start, end, employee_id, view_type });

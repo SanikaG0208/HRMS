@@ -9,6 +9,8 @@ import { useAuth } from '../../context/AuthContext';
 import { useNotification } from '../../context/NotificationContext';
 import axios from '../../config/axios';
 import API_ENDPOINTS from '../../config/api';
+import { getSharedEmployeeProfile } from '../../utils/sharedEmployeeProfile';
+import { getSharedTickets } from '../../utils/sharedTickets';
 import { getTrustedNow } from '../../utils/serverTime';
 import { Badge, Dropdown, Spinner, Modal, Button } from 'react-bootstrap';
 import EventNotification from '../Common/EventNotification';
@@ -78,6 +80,9 @@ const Navbar = () => {
       fetchActiveNotice();
       fetchAssignedActiveTickets();
     }
+    const refreshTickets = () => fetchAssignedActiveTickets();
+    window.addEventListener('hrms:tickets-changed', refreshTickets);
+    return () => window.removeEventListener('hrms:tickets-changed', refreshTickets);
   }, [user]);
 
   // re-fetch notice when admin saves — event-driven, no polling needed for everyone else
@@ -122,7 +127,7 @@ const Navbar = () => {
   const fetchEmployeeName = async () => {
     try {
       if (user?.role === 'admin') { setEmployeeName('Administrator'); return; }
-      const res = await axios.get(API_ENDPOINTS.EMPLOYEE_PROFILE(user?.employeeId));
+      const res = await getSharedEmployeeProfile(user?.employeeId);
       if (res.data)
         setEmployeeName(`${res.data.first_name || ''} ${res.data.last_name || ''}`.trim() || 'Employee');
     } catch {
@@ -135,8 +140,8 @@ const Navbar = () => {
   const fetchAssignedActiveTickets = async () => {
     if (!user?.employeeId) return;
     try {
-      const res = await axios.get(API_ENDPOINTS.TICKETS);
-      const mine = (res.data?.tickets || [])
+      const tickets = await getSharedTickets();
+      const mine = tickets
         .filter(t => t.assigned_to === user.employeeId && ACTIVE_TICKET_STATUSES.includes(t.status))
         .sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
       setBlockingTickets(mine);

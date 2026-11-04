@@ -157,7 +157,7 @@ const AdminDashboard = () => {
   const [leaveSearchTerm, setLeaveSearchTerm] = useState('');
   const [exportMessage, setExportMessage] = useState({ type: '', text: '' });
   const [message, setMessage] = useState({ type: '', text: '' });
-  const [lastUpdated, setLastUpdated] = useState(new Date());
+  // const [lastUpdated, setLastUpdated] = useState(new Date());
   const [totalEmployees, setTotalEmployees] = useState(0);
   const [activeTab, setActiveTab] = useState('overview');
   const [regularizationCount, setRegularizationCount] = useState(0);
@@ -214,7 +214,7 @@ const AdminDashboard = () => {
     try {
       const res = await axios.get(API_ENDPOINTS.ATTENDANCE_CLOCK_OUT_PREVIEW(user?.employeeId));
       setClockOutPreview(res.data);
-    } catch (err) {
+    } catch {
       setClockOutPreview({ is_clocked_in: false }); // fall back to the plain confirm message on failure
     }
   };
@@ -495,7 +495,7 @@ const AdminDashboard = () => {
       setLeaveRequests(pendingLeaves);
       setFilteredLeaveRequests(pendingLeaves);
 
-      setLastUpdated(new Date());
+      // setLastUpdated(new Date());
     } catch (error) {
       if (axios.isCancel?.(error) || error.code === 'ERR_CANCELED') return;
       console.error('Error fetching dashboard data:', error);
@@ -505,11 +505,11 @@ const AdminDashboard = () => {
     }
   };
 
-  const handleRegularizationApproved = (employeeId) => {
-    console.log(`Regularization approved for employee: ${employeeId}`);
-    refreshAttendanceData();
-    refreshLeaveRequests();
-  };
+  // const handleRegularizationApproved = (employeeId) => {
+  //   console.log(`Regularization approved for employee: ${employeeId}`);
+  //   refreshAttendanceData();
+  //   refreshLeaveRequests();
+  // };
 
   const fetchCompleteEvents = (employees = null) => {
     try {
@@ -692,20 +692,20 @@ const AdminDashboard = () => {
     return filtered;
   };
 
-  const refreshAttendanceData = async () => {
-    try {
-      const today = new Date().toISOString().split('T')[0];
-      const attendanceRes = await axios.get(`${API_ENDPOINTS.ATTENDANCE_REPORT}?start=${today}&end=${today}${managerIdParam}`);
-      const attendanceData = attendanceRes.data.attendance || [];
-      const clockedInData = attendanceData.filter(a => a.clock_in);
-      setTodayAttendance(clockedInData);
-      setFilteredAttendance(clockedInData);
-      updateStats(attendanceData);
-      setLastUpdated(new Date());
-    } catch (error) {
-      console.error('Error refreshing attendance:', error);
-    }
-  };
+  // const refreshAttendanceData = async () => {
+  //   try {
+  //     const today = new Date().toISOString().split('T')[0];
+  //     const attendanceRes = await axios.get(`${API_ENDPOINTS.ATTENDANCE_REPORT}?start=${today}&end=${today}${managerIdParam}`);
+  //     const attendanceData = attendanceRes.data.attendance || [];
+  //     const clockedInData = attendanceData.filter(a => a.clock_in);
+  //     setTodayAttendance(clockedInData);
+  //     setFilteredAttendance(clockedInData);
+  //     updateStats(attendanceData);
+  //     // setLastUpdated(new Date());
+  //   } catch (error) {
+  //     console.error('Error refreshing attendance:', error);
+  //   }
+  // };
 
   const refreshLeaveRequests = async () => {
     try {
@@ -959,19 +959,19 @@ const AdminDashboard = () => {
   };
 
   const departments = ['all', ...new Set(employeeLeaveBalances.map(emp => emp.department).filter(Boolean))];
-  const totalLeavesAvailable = employeeLeaveBalances.reduce((sum, emp) => {
-    const available = parseFloat(emp.leaveBalance?.available) || 0;
-    return sum + available;
-  }, 0);
+  // const totalLeavesAvailable = employeeLeaveBalances.reduce((sum, emp) => {
+  //   const available = parseFloat(emp.leaveBalance?.available) || 0;
+  //   return sum + available;
+  // }, 0);
 
-  const averageLeavesPerEmployee = employeeLeaveBalances.length > 0
-    ? (totalLeavesAvailable / employeeLeaveBalances.length).toFixed(1)
-    : 0;
+  // const averageLeavesPerEmployee = employeeLeaveBalances.length > 0
+  //   ? (totalLeavesAvailable / employeeLeaveBalances.length).toFixed(1)
+  //   : 0;
 
-  const employeesWithLowBalance = employeeLeaveBalances.filter(emp => {
-    const available = parseFloat(emp.leaveBalance?.available) || 0;
-    return available < 3;
-  }).length;
+  // const employeesWithLowBalance = employeeLeaveBalances.filter(emp => {
+  //   const available = parseFloat(emp.leaveBalance?.available) || 0;
+  //   return available < 3;
+  // }).length;
 
   const formatTime = (datetime) => {
     if (!datetime) return '--:--';
@@ -992,7 +992,7 @@ const AdminDashboard = () => {
     });
   };
 
-  const getStatusBadge = (record) => {
+  /* const getStatusBadge = (record) => {
     if (!record.clock_in && (record.is_on_leave || record.status === 'on_leave')) {
       return <Badge bg="purple" style={{ backgroundColor: '#6f42c1' }}><FaUmbrellaBeach className="me-1" size={10} /> On Leave</Badge>;
     }
@@ -1001,18 +1001,18 @@ const AdminDashboard = () => {
     if (record.status === 'present') return <Badge bg="success">Present</Badge>;
     if (record.status === 'half_day') return <Badge bg="warning">Half Day</Badge>;
     return <Badge bg="danger">Absent</Badge>;
-  };
+  }; */
 
-  const attendanceChartData = {
-    labels: ['Present', 'Absent', 'On Leave', 'Half Day', 'Late'],
-    datasets: [{
-      data: [stats.present, stats.absent, stats.onLeave, stats.halfDay, stats.late],
-      backgroundColor: ['#22c55e', '#ef4444', '#8b5cf6', '#f97316', '#f59e0b'],
-      borderWidth: 3,
-      borderColor: '#ffffff',
-      hoverOffset: 8
-    }]
-  };
+  // const attendanceChartData = {
+  //   labels: ['Present', 'Absent', 'On Leave', 'Half Day', 'Late'],
+  //   datasets: [{
+  //     data: [stats.present, stats.absent, stats.onLeave, stats.halfDay, stats.late],
+  //     backgroundColor: ['#22c55e', '#ef4444', '#8b5cf6', '#f97316', '#f59e0b'],
+  //     borderWidth: 3,
+  //     borderColor: '#ffffff',
+  //     hoverOffset: 8
+  //   }]
+  // };
 
   const uniqueDepartments = [...new Set(allBirthdays.map(emp => emp.department).filter(Boolean))];
 
@@ -1138,12 +1138,8 @@ const AdminDashboard = () => {
       </div>
 
       {/* Tab Content */}
-      {activeTab === 'ratings' && (
-        <AdminRatings
-          initialMonth={ratingFilterMonth}
-          initialYear={ratingFilterYear}
-        />
-      )}
+      {/* <AdminRatings initialMonth={ratingFilterMonth} initialYear={ratingFilterYear} /> */}
+      {activeTab === 'ratings' && <AdminRatings />}
 
       {activeTab === 'regularization' && (
         <RegularizationPanel

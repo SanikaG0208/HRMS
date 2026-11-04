@@ -1,7 +1,7 @@
 const express = require('express');
 const router  = express.Router();
 const supabase = require('../config/supabase');
-const { verifyToken, isAdmin, isAdminOrDesktopSupport } = require('../middleware/auth');
+const { verifyToken, /* isAdmin, */ isAdminOrDesktopSupport } = require('../middleware/auth');
 
 // ── helpers ──────────────────────────────────────────────────────────────────
 

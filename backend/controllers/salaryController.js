@@ -6,12 +6,12 @@ const { getCycleDates, parseLocalDate, LATE_FREE_COUNT } = require('../config/pa
 const CompanyHolidayService = require('../services/companyHolidayService');
 
 const { dateOnly, countWeekdays, calculateProratedPay } = require('../services/payrollMath');
-// Helper function to get month name
-function getMonthName(monthNumber) {
-    const months = ['January', 'February', 'March', 'April', 'May', 'June',
-        'July', 'August', 'September', 'October', 'November', 'December'];
-    return months[monthNumber - 1] || 'Unknown';
-}
+// Unused helper retained for reference:
+// function getMonthName(monthNumber) {
+//     const months = ['January', 'February', 'March', 'April', 'May', 'June',
+//         'July', 'August', 'September', 'October', 'November', 'December'];
+//     return months[monthNumber - 1] || 'Unknown';
+// }
 
 // Calculate working days in cycle (Monday to Friday only)
 const calculateWorkingDaysInCycle = countWeekdays;
@@ -53,29 +53,29 @@ const countHolidaysInCycle = (startDateStr, endDateStr, extraHolidays = new Map(
 };
 
 // Calculate days employed in the cycle (for prorated salary)
-const calculateDaysEmployedInCycle = (startDate, endDate, joiningDate) => {
-    if (!joiningDate) return null;
-
-    const joinDate   = dateOnly(joiningDate);
-    const cycleStart = dateOnly(startDate);
-    const cycleEnd   = dateOnly(endDate);
-
-    if (joinDate > cycleEnd) return 0;
-    if (joinDate <= cycleStart) return null;
-
-    let employedDays = 0;
-    let currentDate = new Date(joinDate);
-
-    while (currentDate <= cycleEnd) {
-        const dayOfWeek = currentDate.getDay();
-        if (dayOfWeek !== 0 && dayOfWeek !== 6) {
-            employedDays++;
-        }
-        currentDate.setDate(currentDate.getDate() + 1);
-    }
-
-    return employedDays;
-};
+// const calculateDaysEmployedInCycle = (startDate, endDate, joiningDate) => {
+//     if (!joiningDate) return null;
+//
+//     const joinDate   = dateOnly(joiningDate);
+//     const cycleStart = dateOnly(startDate);
+//     const cycleEnd   = dateOnly(endDate);
+//
+//     if (joinDate > cycleEnd) return 0;
+//     if (joinDate <= cycleStart) return null;
+//
+//     let employedDays = 0;
+//     let currentDate = new Date(joinDate);
+//
+//     while (currentDate <= cycleEnd) {
+//         const dayOfWeek = currentDate.getDay();
+//         if (dayOfWeek !== 0 && dayOfWeek !== 6) {
+//             employedDays++;
+//         }
+//         currentDate.setDate(currentDate.getDate() + 1);
+//     }
+//
+//     return employedDays;
+// };
 
 // Get employee details
 const getEmployeeDetails = async (employeeId) => {

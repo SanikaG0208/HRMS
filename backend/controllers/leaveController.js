@@ -15,13 +15,13 @@ const {
 const { syncAttendanceForApprovedLeave, revertAttendanceForLeave } = require('../services/leaveAttendanceSync');
 
 // Helper: check if designation is team leader/manager level
-const isTeamLeaderDesignation = (designation) => {
-    if (!designation) return false;
-    const d = designation.toLowerCase();
-    return d.includes('team leader') || d.includes('team manager') ||
-           d.includes('tl') || d.includes('lead') || d.includes('manager') ||
-           d.includes('head') || d.includes('supervisor');
-};
+// const isTeamLeaderDesignation = (designation) => {
+//     if (!designation) return false;
+//     const d = designation.toLowerCase();
+//     return d.includes('team leader') || d.includes('team manager') ||
+//            d.includes('tl') || d.includes('lead') || d.includes('manager') ||
+//            d.includes('head') || d.includes('supervisor');
+// };
 
 // Sum of HR/admin manual balance adjustments (leave_balance_adjustments, category='paid')
 // for one employee in a given year — this is the offset term getLeaveBalance/

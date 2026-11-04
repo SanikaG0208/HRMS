@@ -10,6 +10,9 @@ import {
 import { useAuth } from '../../context/AuthContext';
 import axios from '../../config/axios';
 import API_ENDPOINTS from '../../config/api';
+import { getSharedEmployeeProfile } from '../../utils/sharedEmployeeProfile';
+import { dashboardGet } from '../../utils/dashboardGet';
+import { invalidateSharedTickets } from '../../utils/sharedTickets';
 import { getTicketAge } from '../../utils/ticketAge';
 import './TicketList.css';
 
@@ -155,7 +158,7 @@ const AgeBadge = ({ ticket, compact = false }) => {
 
 // ─── TicketForm (modal) ───────────────────────────────────────────────────────
 
-function TicketForm({ show, onHide, onCreated, userEmail, userName, userEmployeeId }) {
+function TicketForm({ show, onHide, onCreated, userEmail, /* userName, */ userEmployeeId }) {
   const [dept,        setDept]        = useState('');
   const [issueType,   setIssueType]   = useState('');
   const [subject,     setSubject]     = useState('');
@@ -603,7 +606,7 @@ function TicketDetail({ ticketId, show, onHide, onUpdated, userRole, userEmploye
 
         if (parsedDetails?.employeeNumber) {
           try {
-            const empRes = await axios.get(API_ENDPOINTS.EMPLOYEE_PROFILE(parsedDetails.employeeNumber));
+            const empRes = await getSharedEmployeeProfile(parsedDetails.employeeNumber);
             setEmployeePhoto(getEmployeePhotoUrl(empRes.data) || '');
           } catch {
             setEmployeePhoto('');
@@ -622,7 +625,7 @@ function TicketDetail({ ticketId, show, onHide, onUpdated, userRole, userEmploye
     setShowResolve(false); setShowDecline(false);
   }, [ticketId]);
 
-  const act = async (type, payload = {}) => {
+  const act = async (type /*, payload = {} */) => {
     setActing(type);
     try {
       const map = {
@@ -633,6 +636,7 @@ function TicketDetail({ ticketId, show, onHide, onUpdated, userRole, userEmploye
         decline:     () => axios.patch(API_ENDPOINTS.TICKET_DECLINE(ticketId), { reason: declineNote }),
       };
       await map[type]();
+      if (type !== 'comment') invalidateSharedTickets();
       setComment(''); setIsInternalNote(false); setResolveNote(''); setDeclineNote('');
       setShowResolve(false); setShowDecline(false);
       await fetch();
@@ -1144,11 +1148,11 @@ export default function TicketList() {
   useEffect(() => { if (routeTicketId) setDetailId(routeTicketId); }, [routeTicketId]);
 
   const userEmail = user?.email || '';
-  const userName  = user?.name  || user?.employeeId || '';
+  // const userName = user?.name || user?.employeeId || '';
 
   const fetchTickets = useCallback(async () => {
     try {
-      const res = await axios.get(API_ENDPOINTS.TICKETS);
+      const res = await dashboardGet(API_ENDPOINTS.TICKETS);
       setTickets(res.data.tickets || []);
     } catch { /* silent */ } finally { setLoading(false); }
   }, []);
@@ -1257,6 +1261,7 @@ export default function TicketList() {
     );
     const ok     = results.filter(r => r.status === 'fulfilled').length;
     const failed = results.length - ok;
+    if (ok > 0) invalidateSharedTickets();
     setBulkResult({ ok, failed });
     setBulkSubmitting(false);
     setBulkNote('');
@@ -1492,12 +1497,15 @@ export default function TicketList() {
       )}
 
       {/* ── Modals ── */}
+      {/* userName was previously passed but is not used by TicketForm. */}
       <TicketForm
         show={showForm}
         onHide={() => setShowForm(false)}
-        onCreated={ticket => { setTickets(p => [ticket, ...p]); }}
+        onCreated={ticket => {
+          setTickets(p => [ticket, ...p]);
+          invalidateSharedTickets();
+        }}
         userEmail={userEmail}
-        userName={userName}
         userEmployeeId={user?.employeeId}
       />
       <TicketDetail

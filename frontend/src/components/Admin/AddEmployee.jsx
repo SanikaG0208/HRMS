@@ -21,17 +21,17 @@ import {
 } from 'react-icons/fa';
 import axios from '../../config/axios';
 import API_ENDPOINTS from '../../config/api';
-import { useAuth } from '../../context/AuthContext';
+// import { useAuth } from '../../context/AuthContext';
 import { useNotification } from '../../context/NotificationContext';
 import { EMPLOYEE_POLICY_HANDBOOK as DEFAULT_CONTRACT_POLICY } from '../../data/employeePolicyHandbook';
 import { describeCreateSuccess, describeCreateError, retryOnboardingTickets, redactForDisplay } from '../../utils/addEmployeeOutcome';
 
 const AddEmployee = () => {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  // const { user } = useAuth();
   const { showNotification } = useNotification();
 
-  const [loading, setLoading] = useState(false);
+  // const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState('');
@@ -40,7 +40,7 @@ const AddEmployee = () => {
   const [activeTab, setActiveTab] = useState('personal');
   const [acceptPolicy, setAcceptPolicy] = useState(false);
   const [debugInfo, setDebugInfo] = useState(null);
-  const [employeeId, setEmployeeId] = useState('');
+  // const [employeeId, setEmployeeId] = useState('');
   // Set when the employee was created but some onboarding tickets failed: { id, employeeId, failedDepartments, message }
   const [ticketWarning, setTicketWarning] = useState(null);
   const [retryingTickets, setRetryingTickets] = useState(false);
@@ -496,7 +496,7 @@ const AddEmployee = () => {
         throw new Error('Employee may have been created, but the server did not return its employee ID. Please check the employee list before retrying.');
       }
 
-      setEmployeeId(createdEmployeeId);
+      // setEmployeeId(createdEmployeeId);
       console.log('✅ Final Employee ID:', createdEmployeeId);
 
       const outcome = describeCreateSuccess(response.data);
@@ -530,7 +530,7 @@ const AddEmployee = () => {
 
       setError(errorMsg);
       showNotification(errorMsg, 'danger');
-      setEmployeeId('');
+      // setEmployeeId('');
     } finally {
       setSaving(false);
     }

@@ -232,13 +232,13 @@ const LeaveReports = () => {
     return 'success';
   };
 
-  const getPendingColor = (pending) => {
+  /* const getPendingColor = (pending) => {
     const pend = parseFloat(pending);
     if (pend > 5) return 'success';
     if (pend > 2) return 'warning';
     if (pend > 0) return 'info';
     return 'secondary';
-  };
+  }; */
 
   if (loading) {
     return (

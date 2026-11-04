@@ -143,13 +143,13 @@ module.exports = (supabase, authenticateToken) => {
         }
     });
 
-    const visibleTicketsQuery = async (user, managerId) => {
+    const visibleTicketsQuery = async (user, managerId, columns = '*') => {
         const { employeeId, role } = user;
 
         if (ROLES_SEE_ALL.includes(role)) {
             // admin / sub_admin / hr — see everything by default. Manager Dashboard
             // "View Team" filter: narrow to tickets raised by one specific TL/Manager's team.
-            let query = supabase.from('support_tickets').select('*').order('created_at', { ascending: false });
+            let query = supabase.from('support_tickets').select(columns).order('created_at', { ascending: false });
             if (managerId && managerId !== 'ALL') {
                 const teamIds = await getTeamEmployeeIdsByEmployeeId(managerId);
                 if (!teamIds || teamIds.length === 0) return { data: [], error: null };
@@ -170,7 +170,7 @@ module.exports = (supabase, authenticateToken) => {
         if (myDept) orParts.push(`department.eq.${myDept}`);
 
         const result = await supabase.from('support_tickets')
-            .select('*')
+            .select(columns)
             .or(orParts.join(','))
             .order('created_at', { ascending: false });
 
@@ -179,7 +179,7 @@ module.exports = (supabase, authenticateToken) => {
         if (result.error && /raised_for|does not exist/i.test(result.error.message || '')) {
             const fallbackParts = orParts.filter(p => !p.startsWith('raised_for.'));
             return supabase.from('support_tickets')
-                .select('*')
+                .select(columns)
                 .or(fallbackParts.join(','))
                 .order('created_at', { ascending: false });
         }
@@ -242,7 +242,8 @@ module.exports = (supabase, authenticateToken) => {
     // the rest are additive for the new dashboard KPI widget.
     router.get('/count', authenticateToken, async (req, res) => {
         try {
-            const { data, error } = await visibleTicketsQuery(req.user, req.query.manager_id);
+            // Count calculations need no ticket descriptions, attachments, or other payload fields.
+            const { data, error } = await visibleTicketsQuery(req.user, req.query.manager_id, 'status, created_at');
             if (error) throw error;
             const tickets = data || [];
             const open = tickets.filter(t => t.status === 'open').length;
@@ -288,9 +289,10 @@ module.exports = (supabase, authenticateToken) => {
 
             // raised_for defaults to the raiser (the common "raising it for myself" case) —
             // otherwise must resolve to a real employee, never trusted as a free-text name.
+            const raisedForId = raised_for || employeeId;
             let raisedForEmp = emp;
-            if (raised_for && raised_for !== employeeId) {
-                raisedForEmp = await getEmployeeDetails(raised_for);
+            if (raisedForId !== employeeId) {
+                raisedForEmp = await getEmployeeDetails(raisedForId);
                 if (!raisedForEmp) return res.status(400).json({ success: false, message: 'Selected "Raised For" employee was not found' });
             }
 
@@ -302,12 +304,25 @@ module.exports = (supabase, authenticateToken) => {
             // people anyway, so no extra restriction is added here.
             let assigneeEmp = null;
             if (assigned_to) {
-                assigneeEmp = await getEmployeeDetails(assigned_to);
+                // Reuse an employee already loaded above instead of repeating this lookup:
+                // assigneeEmp = await getEmployeeDetails(assigned_to);
+                assigneeEmp = assigned_to === employeeId
+                    ? emp
+                    : assigned_to === raisedForId
+                        ? raisedForEmp
+                        : await getEmployeeDetails(assigned_to);
                 if (!assigneeEmp) return res.status(400).json({ success: false, message: 'Selected assignee was not found' });
             } else if (Array.isArray(tagged_employees) && tagged_employees.length === 1 && tagged_employees[0]?.employee_id) {
                 // Backward-compat fallback for a not-yet-refreshed frontend still sending the
                 // old tagged_employees-only shape — same validation, just a different source.
-                assigneeEmp = await getEmployeeDetails(tagged_employees[0].employee_id);
+                const taggedEmployeeId = tagged_employees[0].employee_id;
+                // Reuse an employee already loaded above instead of repeating this lookup:
+                // assigneeEmp = await getEmployeeDetails(taggedEmployeeId);
+                assigneeEmp = taggedEmployeeId === employeeId
+                    ? emp
+                    : taggedEmployeeId === raisedForId
+                        ? raisedForEmp
+                        : await getEmployeeDetails(taggedEmployeeId);
             }
 
             const ticketNumber = await generateTicketNumber();

@@ -28,6 +28,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useNotification } from '../../context/NotificationContext';
 import axios from '../../config/axios';
 import API_ENDPOINTS from '../../config/api';
+import { getSharedEmployeeProfile } from '../../utils/sharedEmployeeProfile';
 import { useNavigate } from 'react-router-dom';
 import './ApplyLeave.css';
 
@@ -202,7 +203,7 @@ const ApplyLeave = () => {
 
   const fetchEmployeeDetails = async () => {
     try {
-      const response = await axios.get(API_ENDPOINTS.EMPLOYEE_PROFILE(user.employeeId));
+      const response = await getSharedEmployeeProfile(user.employeeId);
 
       // Eligibility month-math lives only on the backend (leaveController.getLeaveBalance) —
       // this component trusts leaveBalance.months_completed / is_eligible instead of

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import {
@@ -10,6 +10,7 @@ import {
 } from 'react-icons/fa';
 import axios from '../../config/axios';
 import API_ENDPOINTS from '../../config/api';
+import { getSharedEmployeeProfile } from '../../utils/sharedEmployeeProfile';
 import { Badge } from 'react-bootstrap';
 import NotifyEmailsModal from '../Admin/NotifyEmailsModal';
 
@@ -20,7 +21,7 @@ const Sidebar = () => {
   const { user, logout } = useAuth();
   const location = useLocation();
   const [employeeName, setEmployeeName]               = useState('');
-  const [employeeDesignation, setEmployeeDesignation] = useState('');
+  // const [employeeDesignation, setEmployeeDesignation] = useState('');
   const [employeePhoto, setEmployeePhoto]             = useState('');
   const [photoError, setPhotoError]                   = useState(false);
   const [isOpen, setIsOpen]     = useState(false);
@@ -28,13 +29,38 @@ const Sidebar = () => {
   const [pendingCount, setPendingCount] = useState(0);
   const [showNotifyEmails, setShowNotifyEmails] = useState(false);
 
+  const fetchEmployeeName = useCallback(async () => {
+    try {
+      if (user?.role === 'admin') { setEmployeeName('Administrator'); return; }
+      const res = await getSharedEmployeeProfile(user?.employeeId);
+      if (res.data) {
+        setEmployeeName(`${res.data.first_name || ''} ${res.data.last_name || ''}`.trim() || 'Employee');
+        // setEmployeeDesignation(res.data.designation || '');
+        setEmployeePhoto(res.data.profile_image || '');
+      }
+    } catch {
+      setEmployeeName(user?.role === 'admin' ? 'Administrator' : user?.role === 'sub_admin' ? 'Manager' : user?.role === 'desktop_support' ? 'Desktop Support' : user?.role === 'finance' ? 'Finance' : user?.role === 'hr' ? 'HR' : 'Employee');
+    }
+  }, [user]);
+
+  const fetchPendingCount = useCallback(async () => {
+    try {
+      const res = await axios.get(API_ENDPOINTS.ADMIN_UPDATES_PENDING_COUNT);
+      setPendingCount(res.data.count || 0);
+    } catch { /* silent */ }
+  }, []);
+
+  const markNotificationsAsRead = useCallback(async () => {
+    try { await axios.post(API_ENDPOINTS.ADMIN_UPDATES_MARK_READ); } catch { /* silent */ }
+  }, []);
+
   /* ── data fetching ── */
   useEffect(() => {
     if (user) {
       fetchEmployeeName();
       if (user?.role === 'admin' || user?.role === 'sub_admin' || user?.role === 'hr') fetchPendingCount();
     }
-  }, [user]);
+  }, [user, fetchEmployeeName, fetchPendingCount]);
 
   useEffect(() => {
     if (user?.role === 'admin' || user?.role === 'sub_admin' || user?.role === 'hr') {
@@ -42,14 +68,14 @@ const Sidebar = () => {
       window.addEventListener('updateApprovalsChanged', h);
       return () => window.removeEventListener('updateApprovalsChanged', h);
     }
-  }, [user]);
+  }, [user, fetchPendingCount]);
 
   useEffect(() => {
     if (location.pathname === '/admin/update-approvals') {
       setPendingCount(0);
       markNotificationsAsRead();
     }
-  }, [location.pathname]);
+  }, [location.pathname, markNotificationsAsRead]);
 
   /* ── responsive ── */
   useEffect(() => {
@@ -71,31 +97,6 @@ const Sidebar = () => {
       el.style.transition  = 'margin-left 0.25s ease';
     }
   }, [isOpen, isMobile]);
-
-  const fetchEmployeeName = async () => {
-    try {
-      if (user?.role === 'admin') { setEmployeeName('Administrator'); return; }
-      const res = await axios.get(API_ENDPOINTS.EMPLOYEE_PROFILE(user?.employeeId));
-      if (res.data) {
-        setEmployeeName(`${res.data.first_name || ''} ${res.data.last_name || ''}`.trim() || 'Employee');
-        setEmployeeDesignation(res.data.designation || '');
-        setEmployeePhoto(res.data.profile_image || '');
-      }
-    } catch {
-      setEmployeeName(user?.role === 'admin' ? 'Administrator' : user?.role === 'sub_admin' ? 'Manager' : user?.role === 'desktop_support' ? 'Desktop Support' : user?.role === 'finance' ? 'Finance' : user?.role === 'hr' ? 'HR' : 'Employee');
-    }
-  };
-
-  const fetchPendingCount = async () => {
-    try {
-      const res = await axios.get(API_ENDPOINTS.ADMIN_UPDATES_PENDING_COUNT);
-      setPendingCount(res.data.count || 0);
-    } catch { /* silent */ }
-  };
-
-  const markNotificationsAsRead = async () => {
-    try { await axios.post(API_ENDPOINTS.ADMIN_UPDATES_MARK_READ); } catch { /* silent */ }
-  };
 
   const closeSidebar = () => { if (isMobile) setIsOpen(false); };
 
@@ -247,7 +248,7 @@ const Sidebar = () => {
                 icon={<FaBell />}
                 label="Update Approvals"
                 badge={pendingCount}
-                onClick={() => { setPendingCount(0); markNotificationsAsRead(); }}
+                onClick={() => { setPendingCount(0); /* markNotificationsAsRead(); Route effect handles this. */ }}
               />
               <NavItem to="/admin/broadcast" icon={<FaBullhorn />} label="Broadcast" />
               <NavItem to="/admin/email" icon={<FaEnvelope />} label="Email" />

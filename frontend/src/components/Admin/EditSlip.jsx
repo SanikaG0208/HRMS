@@ -314,7 +314,7 @@ const EditSlip = () => {
     overtime_amount: 0,
     overtime_hours: 0,
     custom_deduction: calc.otherNum,
-    dt: calc.legacyDt,
+    dt: pfApplicable ? calc.pfNum + calc.ptNum : calc.legacyDt,
     cycle_start_date: cycle.startDate,
     cycle_end_date: cycle.endDate,
   });
@@ -415,7 +415,7 @@ const EditSlip = () => {
         present_days: d.presentDays || 0, half_days: d.halfDays || 0, absent_days: absentDays,
         paid_leave_days: 0, unpaid_leave_days: 0, total_working_days: wd, per_day_salary: perDaySalary,
         unpaid_deduction: 0, overtime_amount: 0, overtime_hours: 0, custom_deduction: d.otherDeductions || 0,
-        dt: legacyDt, cycle_start_date: startDate, cycle_end_date: endDate,
+        dt: applicable ? (d.pf || 0) + (d.pt || 0) : legacyDt, cycle_start_date: startDate, cycle_end_date: endDate,
       },
       employee: { ...emp, pf_amount: d.pf || 0, pt_amount: d.pt || 0, professional_tax_amount: 0 },
     });

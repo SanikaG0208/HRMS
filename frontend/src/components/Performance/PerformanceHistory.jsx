@@ -101,7 +101,7 @@ const PerformanceHistory = () => {
         });
 
         setReviews(combined);
-      } catch (e) {
+      } catch {
         setError('Failed to load reviews');
       } finally {
         setLoading(false);

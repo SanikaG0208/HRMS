@@ -80,18 +80,17 @@ router.get('/pending-requests', verifyToken, isAdmin, async (req, res) => {
 
 // Send update request to employee - UPDATED with document support
 router.post('/send-request', verifyToken, isAdmin, async (req, res) => {
-    const requestedFields = req.body.requested_fields || [];
-    const requestedFieldNames = req.body.requested_field_names || [];
-
-    // Ensure aadhar_number is included if bank section is selected
-    let finalRequestedFields = [...requestedFields];
-    let finalFieldNames = [...requestedFieldNames];
-
-    if (requestedFields.includes('bank')) {
-        if (!finalFieldNames.includes('aadhar_number')) {
-            finalFieldNames.push('aadhar_number');
-        }
-    }
+    // This adjusted value was never used; insertData below stores requested_fields from req.body.
+    // const requestedFields = req.body.requested_fields || [];
+    // const requestedFieldNames = req.body.requested_field_names || [];
+    // let finalRequestedFields = [...requestedFields];
+    // let finalFieldNames = [...requestedFieldNames];
+    //
+    // if (requestedFields.includes('bank')) {
+    //     if (!finalFieldNames.includes('aadhar_number')) {
+    //         finalFieldNames.push('aadhar_number');
+    //     }
+    // }
 
     try {
         const { employee_id, requested_fields, notes, document_types } = req.body;

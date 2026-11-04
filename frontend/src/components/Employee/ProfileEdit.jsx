@@ -9,6 +9,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useNotification } from '../../context/NotificationContext';
 import axios from '../../config/axios';
 import API_ENDPOINTS from '../../config/api';
+import { getSharedEmployeeProfile, invalidateSharedEmployeeProfile } from '../../utils/sharedEmployeeProfile';
 import { 
   FaSave, 
   FaTimes, 
@@ -91,7 +92,7 @@ const ProfileEdit = () => {
     const fetchEmployeeData = async () => {
         try {
             setLoading(true);
-            const response = await axios.get(API_ENDPOINTS.EMPLOYEE_PROFILE(user?.employeeId));
+            const response = await getSharedEmployeeProfile(user?.employeeId);
             
             // Populate form data with existing values
             const employeeData = response.data;
@@ -221,6 +222,7 @@ const ProfileEdit = () => {
             const employeeId = user?.employeeId;
             
             await axios.put(API_ENDPOINTS.EMPLOYEE_UPDATE(employeeId), formData);
+            invalidateSharedEmployeeProfile(employeeId);
             
             setSuccess('Profile updated successfully!');
             showNotification('Profile updated successfully!', 'success');

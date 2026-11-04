@@ -87,41 +87,41 @@ const generateEmployeeIdBasedOnJoiningDate = async (joiningDate) => {
 };
 
 // Also fix the other generateEmployeeId function if it exists
-const generateEmployeeId = async () => {
-    const date = new Date();
-    const year = date.getFullYear().toString().slice(-2);
-    const month = (date.getMonth() + 1).toString().padStart(2, '0');
-
-    try {
-        // Get count of employees joined THIS MONTH
-        const { count, error } = await supabase
-            .from('employees')
-            .select('*', { count: 'exact', head: true })
-            .gte('joining_date', `${date.getFullYear()}-${month}-01`)
-            .lt('joining_date', `${date.getFullYear()}-${String(date.getMonth() + 2).padStart(2, '0')}-01`);
-
-        if (error) throw error;
-
-        // Get the sequence number for this month (add 1 to count)
-        const sequence = (count + 1).toString().padStart(2, '0'); // Changed from 3 to 2
-        const employeeId = `B2B${year}${month}${sequence}`;
-
-        console.log('Generated Employee ID:', {
-            year,
-            month,
-            count,
-            sequence,
-            employeeId
-        });
-
-        return employeeId;
-    } catch (error) {
-        console.error('Error generating employee ID:', error);
-        // Fallback with random sequence if error
-        const randomSeq = Math.floor(Math.random() * 90 + 10).toString().padStart(2, '0'); // Changed from 3 to 2
-        return `B2B${year}${month}${randomSeq}`;
-    }
-};
+// const generateEmployeeId = async () => {
+//     const date = new Date();
+//     const year = date.getFullYear().toString().slice(-2);
+//     const month = (date.getMonth() + 1).toString().padStart(2, '0');
+//
+//     try {
+//         // Get count of employees joined THIS MONTH
+//         const { count, error } = await supabase
+//             .from('employees')
+//             .select('*', { count: 'exact', head: true })
+//             .gte('joining_date', `${date.getFullYear()}-${month}-01`)
+//             .lt('joining_date', `${date.getFullYear()}-${String(date.getMonth() + 2).padStart(2, '0')}-01`);
+//
+//         if (error) throw error;
+//
+//         // Get the sequence number for this month (add 1 to count)
+//         const sequence = (count + 1).toString().padStart(2, '0'); // Changed from 3 to 2
+//         const employeeId = `B2B${year}${month}${sequence}`;
+//
+//         console.log('Generated Employee ID:', {
+//             year,
+//             month,
+//             count,
+//             sequence,
+//             employeeId
+//         });
+//
+//         return employeeId;
+//     } catch (error) {
+//         console.error('Error generating employee ID:', error);
+//         // Fallback with random sequence if error
+//         const randomSeq = Math.floor(Math.random() * 90 + 10).toString().padStart(2, '0'); // Changed from 3 to 2
+//         return `B2B${year}${month}${randomSeq}`;
+//     }
+// };
 
 // Create new employee
 exports.createEmployee = async (req, res) => {

@@ -1,13 +1,15 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { FaUserClock } from 'react-icons/fa';
-import axios from '../../config/axios';
+// import axios from '../../config/axios';
 import API_ENDPOINTS from '../../config/api';
+import { dashboardGet } from '../../utils/dashboardGet';
 import Avatar from './Avatar';
 import { QA, QA_CARD_STYLE, QA_CARD_TITLE_STYLE } from './quickAccessTheme';
 
 export default function OnLeaveTodayCard({ scope = 'department', department, managerId }) {
   const [employees, setEmployees] = useState([]);
   const [loading, setLoading] = useState(true);
+  const lastLoadAt = useRef(0);
 
   useEffect(() => {
     let cancelled = false;
@@ -18,13 +20,18 @@ export default function OnLeaveTodayCard({ scope = 'department', department, man
     const url = managerId && managerId !== 'ALL'
       ? `${API_ENDPOINTS.LEAVE_ON_LEAVE_TODAY(effectiveScope, department)}&manager_id=${managerId}`
       : API_ENDPOINTS.LEAVE_ON_LEAVE_TODAY(effectiveScope, department);
-    const load = () => axios.get(url)
-      .then(res => { if (!cancelled && res.data?.success) setEmployees(res.data.employees || []); })
-      .catch(() => {})
+    const load = () => dashboardGet(url)
+      .then(res => {
+        lastLoadAt.current = Date.now();
+        if (!cancelled && res.data?.success) setEmployees(res.data.employees || []);
+      })
+      .catch(() => { lastLoadAt.current = Date.now(); })
       .finally(() => { if (!cancelled) setLoading(false); });
     load();
-    const timer = setInterval(load, 30000);
-    const onFocus = () => load();
+    const timer = setInterval(load, 60 * 60 * 1000);
+    const onFocus = () => {
+      if (Date.now() - lastLoadAt.current >= 60 * 1000) load();
+    };
     window.addEventListener('focus', onFocus);
     return () => { cancelled = true; clearInterval(timer); window.removeEventListener('focus', onFocus); };
   }, [scope, department, managerId]);

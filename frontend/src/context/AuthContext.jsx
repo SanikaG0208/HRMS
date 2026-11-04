@@ -3,6 +3,7 @@ import React, { createContext, useState, useContext, useEffect, useCallback } fr
 import axiosInstance from '../config/axios';
 import API_ENDPOINTS from '../config/api';
 import { clearAllDashboardCaches } from '../utils/dashboardCache';
+import { clearSharedEmployeeProfiles } from '../utils/sharedEmployeeProfile';
 import { isTokenExpired, watchSessionExpiry } from '../utils/sessionExpiry';
 
 const AuthContext = createContext();
@@ -56,6 +57,7 @@ export const AuthProvider = ({ children }) => {
     setToken(null);
     clearStorage();
     clearAllDashboardCaches();
+    clearSharedEmployeeProfiles();
   }, []);
 
   // End even an idle session at the access token's expiry, including after tab sleep.
@@ -85,7 +87,10 @@ export const AuthProvider = ({ children }) => {
     const controller = new AbortController();
 
     const init = async () => {
-      const { user: savedUser, token: savedToken, refreshToken: savedRefresh } = loadFromStorage();
+      const savedSession = loadFromStorage();
+      // The verified user from /verify replaces any cached user value.
+      // const savedUser = savedSession.user;
+      const { token: savedToken, refreshToken: savedRefresh } = savedSession;
 
       if (!savedToken && !savedRefresh) {
         setLoading(false);

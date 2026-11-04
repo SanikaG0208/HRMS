@@ -71,7 +71,7 @@ const GeofenceMap = ({
 
   // Helper function to calculate pixel offset for user location
   const getOffset = (userLoc, officeLoc) => {
-    const maxOffset = 40; // Maximum pixels offset for 100m
+    // const maxOffset = 40; // Maximum pixels offset for 100m
     const distance = calculateDistance(
       userLoc.latitude, userLoc.longitude,
       officeLoc.latitude, officeLoc.longitude

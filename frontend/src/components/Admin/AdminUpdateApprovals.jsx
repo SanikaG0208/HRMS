@@ -88,7 +88,7 @@ const AdminUpdateApprovals = () => {
     };
   };
 
-  const renderComparisonValue = (oldValue, newValue) => {
+  /* const renderComparisonValue = (oldValue, newValue) => {
     if (oldValue === newValue) {
       return <span className="text-muted">No change</span>;
     }
@@ -100,7 +100,7 @@ const AdminUpdateApprovals = () => {
         <span className="text-success">→ {newValue}</span>
       </div>
     );
-  };
+  }; */
 
   if (loading && completedRequests.length === 0) {
     return (

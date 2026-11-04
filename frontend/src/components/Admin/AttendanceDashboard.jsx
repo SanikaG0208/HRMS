@@ -108,14 +108,14 @@ const AttendanceReports = () => {
     return parts.join(' ');
   };
 
-  const formatTime = (datetime) => {
+  /* const formatTime = (datetime) => {
     if (!datetime) return '—';
     return new Date(datetime).toLocaleTimeString('en-US', {
       hour: '2-digit',
       minute: '2-digit',
       second: '2-digit'
     });
-  };
+  }; */
 
   const formatShortTime = (datetime) => {
     if (!datetime) return '-';
@@ -125,14 +125,14 @@ const AttendanceReports = () => {
     });
   };
 
-  const formatDate = (dateString) => {
+  /* const formatDate = (dateString) => {
     if (!dateString) return '-';
     return new Date(dateString).toLocaleDateString('en-US', {
       day: '2-digit',
       month: 'short',
       year: 'numeric'
     });
-  };
+  }; */
 
   useEffect(() => {
     fetchAllEmployees();
