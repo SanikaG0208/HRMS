@@ -969,8 +969,15 @@ exports.getOnLeaveToday = async (req, res) => {
         const { data: emps, error: empsErr } = await supabase
             .from('employees')
             .select('employee_id, first_name, last_name, department, designation, profile_image, reporting_manager')
-            .in('employee_id', empIds);
+            .in('employee_id', empIds)
+            .eq('is_active', true);
         if (empsErr) throw empsErr;
+        const activeEmployeeIds = new Set((emps || []).map(employee => employee.employee_id));
+        const activeLeaves = actualLeaves.filter(leave => activeEmployeeIds.has(leave.employee_id));
+        if (activeLeaves.length === 0) {
+            return res.json({ success: true, scope, date: today, count: 0, employees: [] });
+        }
+        const activeEmployeeIdList = [...activeEmployeeIds];
 
         // Manager Dashboard "View Team" filter — an explicit target manager overrides whose
         // team gets matched below, instead of always resolving to the caller's own name.
@@ -998,11 +1005,11 @@ exports.getOnLeaveToday = async (req, res) => {
         // Approved leave remains in the leave ledger; actual clock-in wins in this live widget.
         const { data: attendance, error: attendanceErr } = await supabase
             .from('attendance').select('employee_id, clock_in, clock_in_ist')
-            .eq('attendance_date', today).in('employee_id', empIds);
+            .eq('attendance_date', today).in('employee_id', activeEmployeeIdList);
         if (attendanceErr) throw attendanceErr;
         const clockedIn = new Set((attendance || []).filter(a => a.clock_in || a.clock_in_ist).map(a => a.employee_id));
         const result = scoped.filter(e => !clockedIn.has(e.employee_id)).map(e => {
-            const leave = actualLeaves.find(l => l.employee_id === e.employee_id);
+            const leave = activeLeaves.find(l => l.employee_id === e.employee_id);
             return {
                 employee_id: e.employee_id,
                 first_name: e.first_name,

@@ -59,7 +59,30 @@ router.patch('/settings', async (req, res) => {
             return res.status(400).json({ success: false, message: `Invalid email address: ${invalid[0]}` });
         }
 
-        const monitored_employee_ids = [...new Set(monitoredIds.filter(Boolean))];
+        const monitored_employee_ids = [...new Set(
+            monitoredIds
+                .filter(id => typeof id === 'string')
+                .map(id => id.trim())
+                .filter(Boolean)
+        )];
+        if (monitored_employee_ids.length > 0) {
+            const { data: activeEmployees, error: employeesError } = await supabase
+                .from('employees')
+                .select('employee_id')
+                .in('employee_id', monitored_employee_ids)
+                .eq('is_active', true);
+            if (employeesError) throw employeesError;
+
+            const activeIds = new Set((activeEmployees || []).map(employee => employee.employee_id));
+            const invalidIds = monitored_employee_ids.filter(id => !activeIds.has(id));
+            if (invalidIds.length > 0) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Only active employees can be monitored. Remove inactive or unknown employees and try again.',
+                    invalid_employee_ids: invalidIds,
+                });
+            }
+        }
 
         const { data, error } = await supabase
             .from('break_notification_settings')

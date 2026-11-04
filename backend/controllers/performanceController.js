@@ -49,6 +49,7 @@ const getReviewableEmployees = async (req, res) => {
       .from('employees')
       .select('employee_id, first_name, last_name, department, designation, role, reporting_manager')
       .eq('role', targetRole)
+      .eq('is_active', true)
       .order('first_name', { ascending: true });
 
     if (error) throw error;
@@ -334,7 +335,8 @@ const getTeamStats = async (req, res) => {
     let { data: candidates } = await supabase
       .from('employees')
       .select('employee_id, first_name, last_name, reporting_manager')
-      .eq('role', targetRole);
+      .eq('role', targetRole)
+      .eq('is_active', true);
 
     if (callerRole === 'manager' && candidates) {
       const caller     = await getEmployee(callerId);
@@ -398,14 +400,31 @@ const getAnalytics = async (req, res) => {
       }
     }
 
-    // All reviews this month
+    const targetRoles = (callerRole === 'admin' || callerRole === 'hr')
+      ? ['sub_admin', 'manager', 'employee']
+      : ['manager', 'employee'];
+
+    // Count only active employees in current-cycle review metrics.
+    let employeesQuery = supabase
+      .from('employees')
+      .select('employee_id, role')
+      .in('role', targetRoles)
+      .eq('is_active', true);
+    if (teamIds) employeesQuery = employeesQuery.in('employee_id', teamIds);
+    const { data: allEmployees, error: employeesError } = await employeesQuery;
+    if (employeesError) throw employeesError;
+    const activeEmployeeIds = (allEmployees || []).map(employee => employee.employee_id);
+
+    // All reviews this month for active employees only
     let reviewsQuery = supabase
       .from('performance_reviews')
       .select('employee_id, rating, employee_role')
       .eq('review_month', month)
       .eq('review_year',  year);
-    if (teamIds) reviewsQuery = reviewsQuery.in('employee_id', teamIds);
-    const { data: monthReviews } = await reviewsQuery;
+    reviewsQuery = reviewsQuery.in('employee_id', activeEmployeeIds);
+    const { data: monthReviews } = activeEmployeeIds.length > 0
+      ? await reviewsQuery
+      : { data: [] };
 
     const reviews = monthReviews || [];
     const totalReviewed = reviews.length;
@@ -418,18 +437,6 @@ const getAnalytics = async (req, res) => {
 
     // Top performers (rating 5)
     const topRated = reviews.filter(r => r.rating === 5).map(r => r.employee_id);
-
-    // Count pending by role
-    const targetRoles = (callerRole === 'admin' || callerRole === 'hr')
-      ? ['sub_admin', 'manager', 'employee']
-      : ['manager', 'employee'];
-
-    let employeesQuery = supabase
-      .from('employees')
-      .select('employee_id, role')
-      .in('role', targetRoles);
-    if (teamIds) employeesQuery = employeesQuery.in('employee_id', teamIds);
-    const { data: allEmployees } = await employeesQuery;
 
     const totalEmployees = (allEmployees || []).length;
     const reviewedIds    = new Set(reviews.map(r => r.employee_id));

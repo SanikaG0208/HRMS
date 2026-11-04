@@ -144,14 +144,12 @@ const AttendanceReports = () => {
   }, [selectedMonth, selectedYear]);
 
   useEffect(() => {
-    if (activeView === 'daily') {
-      fetchDailyAttendance();
-    } else {
-      if (allEmployees.length > 0) {
-        fetchMonthlyAttendance();
-      }
-    }
-  }, [activeView, selectedDate, selectedMonth, selectedYear, department, allEmployees]);
+    if (activeView === 'daily') fetchDailyAttendance();
+  }, [activeView, selectedDate, department]);
+
+  useEffect(() => {
+    if (activeView === 'monthly' && allEmployees.length > 0) fetchMonthlyAttendance();
+  }, [activeView, selectedMonth, selectedYear, department, allEmployees]);
 
   const fetchAllEmployees = async () => {
     try {
