@@ -33,6 +33,7 @@ import {
 } from 'react-icons/fa';
 import axios from '../../config/axios';
 import API_ENDPOINTS from '../../config/api';
+import { getSharedEmployeeProfile, invalidateSharedEmployeeProfile } from '../../utils/sharedEmployeeProfile';
 import { useAuth } from '../../context/AuthContext';
 import { useNotification } from '../../context/NotificationContext';
 import HolidayCalendar from './HolidayCalendar';
@@ -112,6 +113,7 @@ const Profile = () => {
     // Listen for employee updates
     useEffect(() => {
         if (employeeUpdate && employeeUpdate.employeeId === user?.employeeId) {
+            invalidateSharedEmployeeProfile(user.employeeId);
             fetchEmployeeProfile();
             fetchLeaveBalance();
             fetchCompOffHistory();
@@ -125,7 +127,7 @@ const Profile = () => {
         try {
             setLoading(true);
 
-            const response = await axios.get(API_ENDPOINTS.EMPLOYEE_PROFILE(user?.employeeId));
+            const response = await getSharedEmployeeProfile(user?.employeeId);
             if (response.data) {
                 setEmployee(response.data);
             }
@@ -252,6 +254,7 @@ const Profile = () => {
                 { headers: { 'Content-Type': 'multipart/form-data' } }
             );
 
+            invalidateSharedEmployeeProfile(user.employeeId);
             setImageError(false);
             setEmployee(prev => ({ ...prev, profile_image: response.data?.documents?.profile_image || 'uploaded' }));
             showNotification('Profile photo updated!', 'success');
@@ -268,6 +271,7 @@ const Profile = () => {
         setUploadingPhoto(true);
         try {
             await axios.delete(API_ENDPOINTS.EMPLOYEE_DOCUMENT_DELETE(user.employeeId, 'profile_image'));
+            invalidateSharedEmployeeProfile(user.employeeId);
             setEmployee(prev => ({ ...prev, profile_image: null }));
             setImageError(false);
             showNotification('Profile photo removed', 'success');

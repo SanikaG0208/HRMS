@@ -1,8 +1,7 @@
 // hooks/useEmployeeData.js
 import { useState, useEffect } from 'react';
 import { useNotification } from '../context/NotificationContext';
-import axiosInstance from '../config/axios';
-import API_ENDPOINTS from '../config/api';
+import { getSharedEmployeeProfile, invalidateSharedEmployeeProfile } from '../utils/sharedEmployeeProfile';
 
 
 export const useEmployeeData = (employeeId) => {
@@ -11,12 +10,13 @@ export const useEmployeeData = (employeeId) => {
   const [error, setError] = useState('');
   const { employeeUpdate, clearEmployeeUpdate } = useNotification();
 
-  const fetchEmployee = async () => {
+  const fetchEmployee = async (forceRefresh = false) => {
     if (!employeeId) return;
 
     try {
       setLoading(true);
-      const response = await axiosInstance.get(API_ENDPOINTS.EMPLOYEE_PROFILE(employeeId));
+      if (forceRefresh) invalidateSharedEmployeeProfile(employeeId);
+      const response = await getSharedEmployeeProfile(employeeId);
       setEmployee(response.data);
       setError('');
     } catch (err) {
@@ -35,10 +35,10 @@ export const useEmployeeData = (employeeId) => {
 
   useEffect(() => {
     if (employeeUpdate && employeeUpdate.employeeId === employeeId) {
-      fetchEmployee();
+      fetchEmployee(true);
       clearEmployeeUpdate();
     }
   }, [employeeUpdate, employeeId]);
 
-  return { employee, loading, error, refresh: fetchEmployee };
+  return { employee, loading, error, refresh: () => fetchEmployee(true) };
 };

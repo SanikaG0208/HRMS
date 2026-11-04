@@ -45,7 +45,7 @@ const MANAGER_DASH_MOBILE_CSS = `
   }
 `;
 
-const StatCard = ({ label, value, icon, pal, loading, onClick }) => (
+const StatCard = ({ label, value, icon, /* pal, */ loading, onClick }) => (
   <div
     className="manager-stat-card"
     onClick={onClick}
@@ -154,7 +154,7 @@ const ManagerDashboard = () => {
     try {
       const res = await axios.get(API_ENDPOINTS.ATTENDANCE_CLOCK_OUT_PREVIEW(user?.employeeId));
       setClockOutPreview(res.data);
-    } catch (err) {
+    } catch {
       setClockOutPreview({ is_clocked_in: false }); // fall back to the plain confirm message on failure
     }
   };

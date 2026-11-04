@@ -200,7 +200,7 @@ module.exports = (supabase, authenticateToken) => {
             let firstComments = {};
             if (postIds.length > 0) {
                 const { data: comments } = await supabase.from('post_comments')
-                    .select('*')
+                    .select('id, post_id, commenter_employee_id, commenter_name, comment, parent_comment_id, created_at')
                     .in('post_id', postIds)
                     .order('created_at', { ascending: true });
                 (comments || []).forEach(c => {
@@ -558,7 +558,8 @@ module.exports = (supabase, authenticateToken) => {
     router.get('/:id/comments', authenticateToken, async (req, res) => {
         try {
             const { data, error } = await supabase.from('post_comments')
-                .select('*').eq('post_id', req.params.id).order('created_at', { ascending: true });
+                .select('id, post_id, commenter_employee_id, commenter_name, comment, parent_comment_id, created_at')
+                .eq('post_id', req.params.id).order('created_at', { ascending: true });
             if (error) throw error;
             return res.json({ success: true, comments: data || [] });
         } catch (err) {

@@ -25,7 +25,7 @@ import {
 } from 'react-icons/fa';
 import axios from '../../config/axios';
 import API_ENDPOINTS from '../../config/api';
-import { useAuth } from '../../context/AuthContext';
+// import { useAuth } from '../../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import * as XLSX from 'xlsx';
 import {
@@ -37,7 +37,7 @@ import ApplyEarlyLogoutModal from '../Common/ApplyEarlyLogoutModal';
 import ConfirmModal from '../Common/ConfirmModal';
 
 const TeamAttendanceReport = () => {
-    const { user } = useAuth();
+    // const { user } = useAuth();
     const navigate = useNavigate();
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
@@ -46,7 +46,7 @@ const TeamAttendanceReport = () => {
     const [attendanceData, setAttendanceData] = useState([]);
     const [employeeSummary, setEmployeeSummary] = useState([]);
     const [dailyStats, setDailyStats] = useState(null);
-    const [teamSummary, setTeamSummary] = useState(null);
+    // const [teamSummary, setTeamSummary] = useState(null);
     const [dateRange, setDateRange] = useState({ start: '', end: '' });
     const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
     const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1);
@@ -149,7 +149,7 @@ const TeamAttendanceReport = () => {
                     });
                 }
 
-                setTeamSummary(response.data.summary);
+                // setTeamSummary(response.data.summary);
 
                 if (activeView === 'monthly') {
                     setDateRange(response.data.date_range);
@@ -840,7 +840,7 @@ const TeamAttendanceReport = () => {
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {getCalendarData().map((employee, idx) => {
+                                    {getCalendarData().map((employee, /* idx */) => {
                                         const empStats = employeeSummary.find(e => e.employee_id === employee.employee_id);
                                         return (
                                             <tr key={employee.employee_id}>

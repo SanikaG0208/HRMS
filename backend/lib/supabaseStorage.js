@@ -32,6 +32,7 @@ async function uploadFile(buffer, originalName, folder, mimeType) {
         .from(BUCKET)
         .upload(storagePath, buffer, {
             contentType: mimeType,
+            ...(folder === 'profiles' ? { cacheControl: '31536000' } : {}),
             upsert: false,
         });
 

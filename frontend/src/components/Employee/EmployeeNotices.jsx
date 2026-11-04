@@ -41,7 +41,7 @@ const EmployeeNotices = () => {
   if (loading) return null;
   if (notices.length === 0) return null;
 
-  const unreadCount = notices.filter(n => !n.is_read).length;
+  // const unreadCount = notices.filter(n => !n.is_read).length;
 
   return (
     <>

@@ -7,6 +7,7 @@ import {
 import { useAuth } from '../../context/AuthContext';
 import axios from '../../config/axios';
 import API_ENDPOINTS from '../../config/api';
+import { getSharedEmployeeProfile } from '../../utils/sharedEmployeeProfile';
 import {
   FaEdit,
   FaSave,
@@ -69,7 +70,7 @@ const EmployeeUpdateSection = () => {
 
   const fetchCurrentEmployeeData = async () => {
     try {
-      const response = await axios.get(API_ENDPOINTS.EMPLOYEE_PROFILE(user.employeeId));
+      const response = await getSharedEmployeeProfile(user.employeeId);
       setFormData(response.data);
     } catch (error) {
       console.error('Error fetching employee data:', error);

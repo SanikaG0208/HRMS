@@ -231,18 +231,18 @@ async function resetAllBalances() {
 }
 
 // Optional: Create backup table if it doesn't exist
-async function createBackupTable() {
-    const { error } = await supabase.query(`
-        CREATE TABLE IF NOT EXISTS leave_balance_backup (
-            LIKE leave_balance INCLUDING ALL,
-            backed_up_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
-        )
-    `);
-
-    if (error) {
-        console.log('⚠️ Could not create backup table:', error.message);
-    }
-}
+// async function createBackupTable() {
+//     const { error } = await supabase.query(`
+//         CREATE TABLE IF NOT EXISTS leave_balance_backup (
+//             LIKE leave_balance INCLUDING ALL,
+//             backed_up_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+//         )
+//     `);
+//
+//     if (error) {
+//         console.log('⚠️ Could not create backup table:', error.message);
+//     }
+// }
 
 // Run the reset
 resetAllBalances();

@@ -13,15 +13,16 @@ import {
 import { useNavigate } from 'react-router-dom';
 import axios from '../../config/axios';
 import API_ENDPOINTS from '../../config/api';
+import { getSharedEmployeeProfile } from '../../utils/sharedEmployeeProfile';
 import { useAuth } from '../../context/AuthContext';
 
-const isTeamLeaderDesignation = (designation) => {
-  if (!designation) return false;
-  const d = designation.toLowerCase();
-  return d.includes('team leader') || d.includes('team manager') ||
-         d.includes('tl') || d.includes('lead') || d.includes('manager') ||
-         d.includes('head') || d.includes('supervisor');
-};
+// const isTeamLeaderDesignation = (designation) => {
+//   if (!designation) return false;
+//   const d = designation.toLowerCase();
+//   return d.includes('team leader') || d.includes('team manager') ||
+//          d.includes('tl') || d.includes('lead') || d.includes('manager') ||
+//          d.includes('head') || d.includes('supervisor');
+// };
 
 const SendNotice = ({ embedded = false }) => {
   const navigate = useNavigate();
@@ -65,9 +66,9 @@ const SendNotice = ({ embedded = false }) => {
         : empRes.data?.data || empRes.data?.employees || [];
 
       if (!isAdmin) {
-        const myName = `${user?.firstName || ''} ${user?.lastName || ''}`.trim();
+        // const myName = `${user?.firstName || ''} ${user?.lastName || ''}`.trim();
         try {
-          const profileRes = await axios.get(API_ENDPOINTS.EMPLOYEE_PROFILE(user?.employeeId));
+          const profileRes = await getSharedEmployeeProfile(user?.employeeId);
           const profile = profileRes.data;
           const fullName = `${profile.first_name || ''} ${profile.last_name || ''}`.trim();
           emps = emps.filter(e => e.reporting_manager === fullName && e.employee_id !== user?.employeeId);
@@ -81,7 +82,7 @@ const SendNotice = ({ embedded = false }) => {
       // Reset selections when data loads
       setSelectedIds(new Set());
       setSelectAll(false);
-    } catch (err) {
+    } catch {
       setMessage({ type: 'danger', text: 'Failed to load data' });
     } finally {
       setFetching(false);

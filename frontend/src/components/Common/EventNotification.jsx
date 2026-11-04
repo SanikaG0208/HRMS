@@ -2,7 +2,7 @@
 import React from 'react';
 import { Alert, Badge } from 'react-bootstrap';
 import { FaBirthdayCake, FaTrophy, FaTimes } from 'react-icons/fa';
-import { useNotification } from '../../context/NotificationContext';
+// import { useNotification } from '../../context/NotificationContext';
 
 const EventNotification = ({ event, onClose }) => {
   const getIcon = () => {

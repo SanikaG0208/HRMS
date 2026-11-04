@@ -25,6 +25,7 @@ import {
 import { useNavigate } from 'react-router-dom';
 import axios from '../../config/axios';
 import API_ENDPOINTS from '../../config/api';
+import { getSharedEmployeeProfile } from '../../utils/sharedEmployeeProfile';
 import { getTrustedNow, getTrustedNowIST } from '../../utils/serverTime';
 import { loadDashboardCache, saveDashboardCache } from '../../utils/dashboardCache';
 import { useAuth } from '../../context/AuthContext';
@@ -183,7 +184,7 @@ const Attendance = () => {
   // ========== CROSS-MIDNIGHT TIME CALCULATION FUNCTIONS ==========
 
   // Parse date time string to Date object
-  const parseDateTime = (dateTimeStr) => {
+  /* const parseDateTime = (dateTimeStr) => {
     if (!dateTimeStr) return null;
     let cleanStr = dateTimeStr.trim();
     cleanStr = cleanStr.replace('T', ' ');
@@ -203,7 +204,7 @@ const Attendance = () => {
     }
 
     return new Date(year, month - 1, day, hour, minute, second);
-  };
+  }; */
 
   // In Attendance.jsx - Update calculateTotalMinutesFixed function
 
@@ -253,7 +254,7 @@ const Attendance = () => {
   };
 
   // Helper function to get UTC milliseconds from IST string
-  const toUTCMs = (val) => {
+  /* const toUTCMs = (val) => {
     if (!val) return null;
     if (val instanceof Date) return isNaN(val.getTime()) ? null : val.getTime();
     const s = String(val).trim();
@@ -268,7 +269,7 @@ const Attendance = () => {
 
     const IST_OFFSET_MS = 5.5 * 60 * 60 * 1000;
     return Date.UTC(y, mo - 1, d, h, mi, sec) - IST_OFFSET_MS;
-  };
+  }; */
 
   // Current time in IST format, anchored to the trusted server clock (see utils/serverTime.js)
   // rather than this device's own clock — the employee's laptop time must never influence the
@@ -489,7 +490,7 @@ const Attendance = () => {
     }
   };
 
-  const sendHeartbeat = async () => {
+  /* const sendHeartbeat = async () => {
     try {
       if (activeSession && location) {
         await axios.post(API_ENDPOINTS.ATTENDANCE_HEARTBEAT, {
@@ -502,7 +503,7 @@ const Attendance = () => {
     } catch (error) {
       console.error('Heartbeat failed:', error);
     }
-  };
+  }; */
 
   const fetchTodayAttendance = async () => {
     try {
@@ -671,11 +672,12 @@ const Attendance = () => {
       }
       // ✅ If serverSession exists but attendanceData is null = cross-midnight
       // activeSession is already set above, attendance will show from previous day's state
-      else if (serverSession && !attendanceData) {
-        // Keep activeSession set (already done above)
-        // attendance state remains as-is (previous day's data still in state)
-        setHasClockedOutToday(false);
-      }
+      // Unreachable: the `if (serverSession)` branch above already handles this case.
+      // else if (serverSession && !attendanceData) {
+      //   // Keep activeSession set (already done above)
+      //   // attendance state remains as-is (previous day's data still in state)
+      //   setHasClockedOutToday(false);
+      // }
 
       // Set up real-time interval for updating working hours every minute
       if (attendanceData?.clock_in && !attendanceData?.clock_out) {
@@ -971,7 +973,7 @@ const Attendance = () => {
       if (existingRecord) {
         const lateMinutes = Number(existingRecord.late_minutes) || 0;
         let lateDisplay = existingRecord.late_display || (lateMinutes > 0 ? formatLateTime(lateMinutes) : null);
-        let clockOut = existingRecord.clock_out_ist || existingRecord.clock_out;
+        // let clockOut = existingRecord.clock_out_ist || existingRecord.clock_out;
         let displayStatus = existingRecord.status;
         let totalHoursDisplay = existingRecord.total_hours_display;
         let totalHours = existingRecord.total_hours;
@@ -1010,7 +1012,7 @@ const Attendance = () => {
           totalHoursDisplay = currentHoursDisplay;
           totalHours = totalMinutes / 60;
           displayStatus = 'working';
-          clockOut = null;
+          // clockOut = null;
           formattedClockOut = '--';
         } else if (clockInValue && !clockOutValue && !isToday) {
           // For previous days with missed clock-out, calculate up to current time
@@ -1109,7 +1111,7 @@ const Attendance = () => {
   };
 
   // Parse shift timing for expected hours calculation
-  const parseShiftTiming = (shiftString) => {
+  /* const parseShiftTiming = (shiftString) => {
     if (!shiftString) {
       return { startHour: 9, startMinute: 0, endHour: 18, endMinute: 0, totalHours: 9 };
     }
@@ -1150,7 +1152,7 @@ const Attendance = () => {
       endMinute: endTime.minute,
       totalHours: totalMinutes / 60
     };
-  };
+  }; */
 
   const calculateMonthlyStats = (history) => {
     let present = 0;
@@ -1975,7 +1977,7 @@ const Attendance = () => {
   // Fetch date of birth (birthday highlight in the table below) once.
   useEffect(() => {
     if (!user?.employeeId) return;
-    axios.get(API_ENDPOINTS.EMPLOYEE_PROFILE(user.employeeId))
+    getSharedEmployeeProfile(user.employeeId)
       .then(res => {
         setEmployeeDob(res.data?.dob || null);
         setEmployeeJoiningDate(res.data?.joining_date?.substring(0, 10) || null);

@@ -41,6 +41,9 @@ import { useNotification } from '../../context/NotificationContext';
 import { useMobileDevice } from '../../hooks/useMobileDevice';
 import axios from '../../config/axios';
 import API_ENDPOINTS from '../../config/api';
+import { dashboardGet } from '../../utils/dashboardGet';
+import { getSharedEmployeeProfile } from '../../utils/sharedEmployeeProfile';
+import { getSharedTickets, invalidateSharedTickets } from '../../utils/sharedTickets';
 import { useNavigate } from 'react-router-dom';
 import { Bar, Doughnut } from 'react-chartjs-2';
 import { holidays } from '../../data/holidays';
@@ -406,17 +409,16 @@ const EmployeeDashboard = () => {
     loadDashboardData({ silent: !!cached });
     fetchAllRatings();
     checkPendingTicketConfirmations();
+    window.addEventListener('hrms:tickets-changed', checkPendingTicketConfirmations);
+    return () => window.removeEventListener('hrms:tickets-changed', checkPendingTicketConfirmations);
   }, [user?.employeeId]);
 
   const checkPendingTicketConfirmations = async () => {
     try {
-      const res = await axios.get(API_ENDPOINTS.TICKETS);
-      const tickets = res.data?.tickets || [];
+      const tickets = await getSharedTickets();
       const mine = tickets.filter(t => t.raised_by === user.employeeId && t.status === 'resolved_pending');
-      if (mine.length > 0) {
-        setPendingConfirmTickets(mine);
-        setShowTicketConfirmModal(true);
-      }
+      setPendingConfirmTickets(mine);
+      setShowTicketConfirmModal(mine.length > 0);
     } catch (error) {
       console.error('Error checking pending ticket confirmations:', error);
     }
@@ -442,6 +444,7 @@ const EmployeeDashboard = () => {
     try {
       await axios.patch(API_ENDPOINTS.TICKET_ACCEPT(activeConfirmTicket.id));
       showNotification('Ticket closed. Thanks for confirming!', 'success');
+      invalidateSharedTickets();
       advanceTicketQueue();
     } catch (error) {
       showNotification(error.response?.data?.message || 'Failed to close ticket', 'danger');
@@ -456,6 +459,7 @@ const EmployeeDashboard = () => {
     try {
       await axios.patch(API_ENDPOINTS.TICKET_DECLINE(activeConfirmTicket.id), { reason: ticketDeclineNote.trim() });
       showNotification('Ticket reopened — the team has been notified.', 'info');
+      invalidateSharedTickets();
       advanceTicketQueue();
     } catch (error) {
       showNotification(error.response?.data?.message || 'Failed to reopen ticket', 'danger');
@@ -650,7 +654,7 @@ const EmployeeDashboard = () => {
 
   const fetchEmployeeData = async () => {
     try {
-      const response = await axios.get(API_ENDPOINTS.EMPLOYEE_PROFILE(user.employeeId));
+      const response = await getSharedEmployeeProfile(user.employeeId);
       setEmployee(response.data);
     } catch (error) {
       console.error('Error fetching employee:', error);
@@ -902,7 +906,7 @@ const EmployeeDashboard = () => {
     });
   };
 
-  const formatLateTime = (lateMinutes) => {
+  /* const formatLateTime = (lateMinutes) => {
     if (!lateMinutes || lateMinutes <= 0) return null;
     const totalSeconds = Math.round(lateMinutes * 60);
     const hours = Math.floor(totalSeconds / 3600);
@@ -913,7 +917,7 @@ const EmployeeDashboard = () => {
     if (minutes > 0) parts.push(`${minutes}m`);
     if (seconds > 0 || (hours === 0 && minutes === 0)) parts.push(`${seconds}s`);
     return parts.join(' ');
-  };
+  }; */
 
   const formatDate = (dateString) => {
     if (!dateString) return 'N/A';
@@ -924,28 +928,28 @@ const EmployeeDashboard = () => {
     });
   };
 
-  const formatTime = (datetime) => {
+  /* const formatTime = (datetime) => {
     if (!datetime) return '-';
     return new Date(datetime).toLocaleTimeString('en-US', {
       hour: '2-digit',
       minute: '2-digit'
     });
-  };
+  }; */
 
-  const getRegionBadge = (region) => {
+  /* const getRegionBadge = (region) => {
     const colors = {
       'India': 'primary',
       'USA': 'danger',
       'Global': 'success'
     };
     return <Badge bg={colors[region] || 'secondary'}>{region}</Badge>;
-  };
+  }; */
 
-  const isTodayWeeklyOff = () => {
+  /* const isTodayWeeklyOff = () => {
     const today = new Date();
     const dayOfWeek = today.getDay();
     return WEEKLY_OFF_DAYS.includes(dayOfWeek);
-  };
+  }; */
 
   if (loading) {
     return (

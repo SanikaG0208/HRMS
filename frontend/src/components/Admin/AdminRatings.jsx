@@ -350,9 +350,9 @@ const AdminRatings = ({ initialMonth, initialYear }) => {
         setMessage({ type: '', text: '' });
     };
 
-    const currentMonth = new Date().getMonth() + 1;
-    const currentYear = new Date().getFullYear();
-    const monthName = new Date().toLocaleString('default', { month: 'long' });
+    // const currentMonth = new Date().getMonth() + 1;
+    // const currentYear = new Date().getFullYear();
+    // const monthName = new Date().toLocaleString('default', { month: 'long' });
 
     const hasAdminRatingForCurrentMonth = (employeeId) => {
         return ratings.some(r =>

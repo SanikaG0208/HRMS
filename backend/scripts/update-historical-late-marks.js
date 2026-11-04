@@ -1,43 +1,43 @@
 const supabase = require('../config/supabase');
 
 // Helper function to parse shift timing
-const parseShiftTiming = (shiftString) => {
-    if (!shiftString) {
-        return { startHour: 9, startMinute: 0, endHour: 18, endMinute: 0, totalHours: 9 };
-    }
-    const parts = shiftString.split('-');
-    if (parts.length !== 2) {
-        return { startHour: 9, startMinute: 0, endHour: 18, endMinute: 0, totalHours: 9 };
-    }
-    const startPart = parts[0].trim();
-    const endPart = parts[1].trim();
-    const parseTime = (timeStr) => {
-        const match = timeStr.match(/(\d+):(\d+)\s*(AM|PM)/i);
-        if (!match) return null;
-        let hour = parseInt(match[1]);
-        const minute = parseInt(match[2]);
-        const ampm = match[3].toUpperCase();
-        if (ampm === 'PM' && hour !== 12) hour += 12;
-        if (ampm === 'AM' && hour === 12) hour = 0;
-        return { hour, minute };
-    };
-    const startTime = parseTime(startPart);
-    const endTime = parseTime(endPart);
-    if (!startTime || !endTime) {
-        return { startHour: 9, startMinute: 0, endHour: 18, endMinute: 0, totalHours: 9 };
-    }
-    const startTotalMinutes = (startTime.hour * 60) + startTime.minute;
-    const endTotalMinutes = (endTime.hour * 60) + endTime.minute;
-    let totalMinutes = endTotalMinutes - startTotalMinutes;
-    if (totalMinutes < 0) totalMinutes += 24 * 60;
-    return {
-        startHour: startTime.hour,
-        startMinute: startTime.minute,
-        endHour: endTime.hour,
-        endMinute: endTime.minute,
-        totalHours: totalMinutes / 60
-    };
-};
+// const parseShiftTiming = (shiftString) => {
+//     if (!shiftString) {
+//         return { startHour: 9, startMinute: 0, endHour: 18, endMinute: 0, totalHours: 9 };
+//     }
+//     const parts = shiftString.split('-');
+//     if (parts.length !== 2) {
+//         return { startHour: 9, startMinute: 0, endHour: 18, endMinute: 0, totalHours: 9 };
+//     }
+//     const startPart = parts[0].trim();
+//     const endPart = parts[1].trim();
+//     const parseTime = (timeStr) => {
+//         const match = timeStr.match(/(\d+):(\d+)\s*(AM|PM)/i);
+//         if (!match) return null;
+//         let hour = parseInt(match[1]);
+//         const minute = parseInt(match[2]);
+//         const ampm = match[3].toUpperCase();
+//         if (ampm === 'PM' && hour !== 12) hour += 12;
+//         if (ampm === 'AM' && hour === 12) hour = 0;
+//         return { hour, minute };
+//     };
+//     const startTime = parseTime(startPart);
+//     const endTime = parseTime(endPart);
+//     if (!startTime || !endTime) {
+//         return { startHour: 9, startMinute: 0, endHour: 18, endMinute: 0, totalHours: 9 };
+//     }
+//     const startTotalMinutes = (startTime.hour * 60) + startTime.minute;
+//     const endTotalMinutes = (endTime.hour * 60) + endTime.minute;
+//     let totalMinutes = endTotalMinutes - startTotalMinutes;
+//     if (totalMinutes < 0) totalMinutes += 24 * 60;
+//     return {
+//         startHour: startTime.hour,
+//         startMinute: startTime.minute,
+//         endHour: endTime.hour,
+//         endMinute: endTime.minute,
+//         totalHours: totalMinutes / 60
+//     };
+// };
 
 // Parse shift timing with enhanced logic
 const parseShiftTimingEnhanced = (shiftString) => {

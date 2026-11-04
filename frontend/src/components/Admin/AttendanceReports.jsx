@@ -150,7 +150,7 @@ const AttendanceReports = () => {
   };
 
   // Add to your frontend components
-  const isFullDay = (clockIn, clockOut, shiftHours = 9) => {
+  /* const isFullDay = (clockIn, clockOut, shiftHours = 9) => {
     if (!clockIn || !clockOut) return false;
 
     const clockInTime = new Date(clockIn);
@@ -160,9 +160,9 @@ const AttendanceReports = () => {
     const expectedMinutes = shiftHours * 60;
 
     return diffMinutes >= expectedMinutes;
-  };
+  }; */
 
-  const isHalfDay = (clockIn, clockOut, shiftHours = 9) => {
+  /* const isHalfDay = (clockIn, clockOut, shiftHours = 9) => {
     if (!clockIn || !clockOut) return false;
 
     const clockInTime = new Date(clockIn);
@@ -172,7 +172,7 @@ const AttendanceReports = () => {
     const expectedMinutes = shiftHours * 60;
 
     return diffMinutes >= 300 && diffMinutes < expectedMinutes; // 5 hours to expected work hours
-  };
+  }; */
 
 
   const formatLateDisplay = (lateMinutes) => {
@@ -210,7 +210,7 @@ const AttendanceReports = () => {
     return isNaN(parsed.getTime()) ? null : parsed;
   };
 
-  const formatTime = (datetime) => {
+  /* const formatTime = (datetime) => {
     const parsed = parseDateTime(datetime);
     if (!parsed) return '—';
     return parsed.toLocaleTimeString('en-US', {
@@ -218,7 +218,7 @@ const AttendanceReports = () => {
       minute: '2-digit',
       second: '2-digit'
     });
-  };
+  }; */
 
   const formatShortTime = (datetime) => {
     const parsed = parseDateTime(datetime);
@@ -952,7 +952,7 @@ const AttendanceReports = () => {
     setMonthlyStats(perEmployee);
   };
 
-  const getLeaveBalance = async (employeeId) => {
+  /* const getLeaveBalance = async (employeeId) => {
     try {
       const response = await axios.get(API_ENDPOINTS.LEAVE_BALANCE(employeeId));
       return response.data.available || '0';
@@ -960,7 +960,7 @@ const AttendanceReports = () => {
       console.error('Error fetching leave balance:', error);
       return '0';
     }
-  };
+  }; */
 
   const handlePreviousMonth = () => {
     if (selectedMonth === 1) {
@@ -986,9 +986,9 @@ const AttendanceReports = () => {
     setSelectedYear(today.getFullYear());
   };
 
-  const getGender = (employee) => {
+  /* const getGender = (employee) => {
     return employee.gender || 'Not Specified';
-  };
+  }; */
 
   const calculateSalary = (employee, overtimeAmount) => {
     const grossSalary = parseFloat(employee.gross_salary) || 0;
@@ -1282,7 +1282,7 @@ const AttendanceReports = () => {
     }
   };
 
-  const getStatusBadge = (record) => {
+  /* const getStatusBadge = (record) => {
     const lateDisplay = record.late_display || (record.late_minutes > 0 ? formatLateDisplay(record.late_minutes) : null);
 
     if (record.overtime_hours > 0) {
@@ -1328,9 +1328,9 @@ const AttendanceReports = () => {
     if (record.status === 'holiday') return <Badge bg="warning" className="px-2 py-1 text-nowrap" style={{ backgroundColor: '#ffc107' }}>{record.is_company_holiday ? 'HOL' : 'Holiday'}</Badge>;
     if (record.status === 'weekend') return <Badge bg="secondary" className="px-2 py-1 text-nowrap"><FaMoon className="me-1" size={10} /> W-OFF</Badge>;
     return <Badge bg="secondary" className="px-2 py-1 text-nowrap">Absent</Badge>;
-  };
+  }; */
 
-  const isCurrentDate = (day) => {
+  /* const isCurrentDate = (day) => {
     const today = new Date();
     const todayYear = today.getFullYear();
     const todayMonth = today.getMonth() + 1;
@@ -1339,7 +1339,7 @@ const AttendanceReports = () => {
     return selectedMonth === todayMonth &&
       selectedYear === todayYear &&
       day === todayDay;
-  };
+  }; */
 
   const isDailyView = activeView === 'daily';
 

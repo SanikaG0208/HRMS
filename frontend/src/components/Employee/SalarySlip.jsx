@@ -34,6 +34,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useNotification } from '../../context/NotificationContext';
 import axios from '../../config/axios';
 import API_ENDPOINTS from '../../config/api';
+import { getSharedEmployeeProfile } from '../../utils/sharedEmployeeProfile';
 import { useNavigate } from 'react-router-dom';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
@@ -208,7 +209,7 @@ const SalarySlip = ({ embedded = false }) => {
 
   const fetchEmployeeData = async () => {
     try {
-      const response = await axios.get(API_ENDPOINTS.EMPLOYEE_PROFILE(user.employeeId));
+      const response = await getSharedEmployeeProfile(user.employeeId);
       setEmployee(response.data);
     } catch (error) {
       console.error('Error fetching employee:', error);
@@ -281,7 +282,7 @@ const SalarySlip = ({ embedded = false }) => {
 
     // Cycle for selected month ends on 25th of that month.
     // Allow generation only after cycle end date (i.e., from 27th of that month).
-    const cycleEndDate = new Date(y, m - 1, 25); // 25th of selected month
+    // const cycleEndDate = new Date(y, m - 1, 25); // 25th of selected month
     const allowFrom = new Date(y, m - 1, 27);    // 27th of selected month
     if (today < allowFrom) return false;
 
@@ -662,17 +663,17 @@ const SalarySlip = ({ embedded = false }) => {
     return `${getMonthName(slip.month)} ${slip.year}`;
   };
 
-  const formatShortDate = (dateString) => {
+  /* const formatShortDate = (dateString) => {
     if (!dateString) return 'N/A';
     return new Date(dateString).toLocaleDateString('en-US', {
       month: 'short',
       day: 'numeric'
     });
-  };
+  }; */
 
   const selectedSlipAmounts = selectedSlip ? getSlipAmounts(selectedSlip) : { basicSalary: 0, deduction: 0, netSalary: 0, overtimeAmount: 0, overtimeHours: 0 };
 
-  const getStatusBadge = (isPaid) => {
+  /* const getStatusBadge = (isPaid) => {
     return isPaid ?
       <Badge bg="success" className="px-3 py-2 small">
         <FaCheckCircle className="me-1" size={10} /> Paid
@@ -680,7 +681,7 @@ const SalarySlip = ({ embedded = false }) => {
       <Badge bg="warning" className="px-3 py-2 small">
         <FaClock className="me-1" size={10} /> Pending
       </Badge>;
-  };
+  }; */
 
   const numberToWords = (num) => {
     const ones = ['', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine',
