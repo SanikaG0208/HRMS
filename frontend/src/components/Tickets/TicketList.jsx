@@ -1143,7 +1143,7 @@ export default function TicketList() {
   const [bulkSubmitting,   setBulkSubmitting]   = useState(false);
   const [bulkResult,       setBulkResult]       = useState(null); // { ok, failed }
 
-  // Deep link: a notification/dashboard-widget click can land on /tickets/:id or
+  // Deep link: a dashboard-widget click can land on /tickets/:id or
   // /tickets?status=... and this opens the right modal/filter without extra plumbing.
   useEffect(() => { if (routeTicketId) setDetailId(routeTicketId); }, [routeTicketId]);
 

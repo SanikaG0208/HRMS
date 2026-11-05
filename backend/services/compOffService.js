@@ -98,18 +98,7 @@ class CompOffService {
                 .update({ comp_off_balance: (emp?.comp_off_balance || 0) + 1 })
                 .eq('employee_id', employee_id);
 
-            // Create notification
             const expiryDate = this.getExpiryDate(dateStr);
-            await supabase
-                .from('notifications')
-                .insert([{
-                    employee_id,
-                    title: 'Comp-Off Earned',
-                    message: `You have earned 1 Comp-Off day for working on ${holiday_name} (${dateStr}). Valid until ${expiryDate}.`,
-                    type: 'comp_off_earned',
-                    created_at: new Date().toISOString()
-                }]);
-
             console.log(`✅ Comp-Off earned: ${employee_id} for ${holiday_name} on ${dateStr}, expires ${expiryDate}`);
             return data[0];
         } catch (error) {

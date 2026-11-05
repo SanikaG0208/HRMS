@@ -164,39 +164,6 @@ router.post('/submit-update', verifyToken, async (req, res) => {
 
         console.log('✅ Request updated to completed with ID:', requestId);
 
-        // Create notification for admin
-        try {
-            // Get admin employees (role = 'admin' or 'hr')
-            const { data: admins } = await supabase
-                .from('employees')
-                .select('employee_id')
-                .in('role', ['admin', 'hr'])
-                .limit(1);
-
-            if (admins && admins.length > 0) {
-                const adminId = admins[0].employee_id;
-                const notificationTitle = isDocumentUpdate ? 'Document Upload Ready for Review' : 'Update Request Ready for Review';
-                const notificationMessage = isDocumentUpdate 
-                    ? `Employee ${req.employeeId} has uploaded documents for review.`
-                    : `Employee ${req.employeeId} has submitted updated information for review.`;
-
-                await supabase
-                    .from('notifications')
-                    .insert([{
-                        employee_id: adminId,
-                        title: notificationTitle,
-                        message: notificationMessage,
-                        type: isDocumentUpdate ? 'document_upload' : 'info_update',
-                        reference_id: requestId,
-                        created_at: new Date().toISOString(),
-                        is_read: false
-                    }]);
-                console.log('✅ Admin notification created');
-            }
-        } catch (notifError) {
-            console.error('⚠️ Error creating admin notification:', notifError);
-        }
-
         res.json({ 
             success: true,
             message: isDocumentUpdate 

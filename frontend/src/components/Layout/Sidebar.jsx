@@ -4,14 +4,11 @@ import { useAuth } from '../../context/AuthContext';
 import {
   FaTachometerAlt, FaUsers, FaCalendarAlt, FaMoneyBill,
   FaUserCircle, FaSignOutAlt, FaFingerprint, FaClock,
-  FaBell, FaPaperPlane, FaEdit, FaUserTie,
+  FaPaperPlane, FaEdit, FaUserTie,
   FaBullhorn, FaStar, FaChevronRight, FaLayerGroup, FaDesktop, FaChartLine, FaMinusCircle, FaFileExcel,
   FaTicketAlt, FaReceipt, FaFileInvoiceDollar, FaCoins, FaEnvelope, FaShieldAlt, FaBellSlash
 } from 'react-icons/fa';
-import axios from '../../config/axios';
-import API_ENDPOINTS from '../../config/api';
 import { getSharedEmployeeProfile } from '../../utils/sharedEmployeeProfile';
-import { Badge } from 'react-bootstrap';
 import NotifyEmailsModal from '../Admin/NotifyEmailsModal';
 
 const SIDEBAR_OPEN   = '260px';
@@ -26,7 +23,6 @@ const Sidebar = () => {
   const [photoError, setPhotoError]                   = useState(false);
   const [isOpen, setIsOpen]     = useState(false);
   const [isMobile, setIsMobile] = useState(false);
-  const [pendingCount, setPendingCount] = useState(0);
   const [showNotifyEmails, setShowNotifyEmails] = useState(false);
 
   const fetchEmployeeName = useCallback(async () => {
@@ -43,39 +39,12 @@ const Sidebar = () => {
     }
   }, [user]);
 
-  const fetchPendingCount = useCallback(async () => {
-    try {
-      const res = await axios.get(API_ENDPOINTS.ADMIN_UPDATES_PENDING_COUNT);
-      setPendingCount(res.data.count || 0);
-    } catch { /* silent */ }
-  }, []);
-
-  const markNotificationsAsRead = useCallback(async () => {
-    try { await axios.post(API_ENDPOINTS.ADMIN_UPDATES_MARK_READ); } catch { /* silent */ }
-  }, []);
-
   /* ── data fetching ── */
   useEffect(() => {
     if (user) {
       fetchEmployeeName();
-      if (user?.role === 'admin' || user?.role === 'sub_admin' || user?.role === 'hr') fetchPendingCount();
     }
-  }, [user, fetchEmployeeName, fetchPendingCount]);
-
-  useEffect(() => {
-    if (user?.role === 'admin' || user?.role === 'sub_admin' || user?.role === 'hr') {
-      const h = () => fetchPendingCount();
-      window.addEventListener('updateApprovalsChanged', h);
-      return () => window.removeEventListener('updateApprovalsChanged', h);
-    }
-  }, [user, fetchPendingCount]);
-
-  useEffect(() => {
-    if (location.pathname === '/admin/update-approvals') {
-      setPendingCount(0);
-      markNotificationsAsRead();
-    }
-  }, [location.pathname, markNotificationsAsRead]);
+  }, [user, fetchEmployeeName]);
 
   /* ── responsive ── */
   useEffect(() => {
@@ -106,7 +75,7 @@ const Sidebar = () => {
   };
 
   /* ── NavItem ── */
-  const NavItem = ({ to, icon, label, badge, onClick, end = false }) => (
+  const NavItem = ({ to, icon, label, onClick, end = false }) => (
     <NavLink
       to={to}
       end={end}
@@ -116,26 +85,7 @@ const Sidebar = () => {
     >
       <span className="hrms-nav-item__icon">{icon}</span>
       {isOpen && (
-        <>
-          <span className="hrms-nav-item__label">{label}</span>
-          {badge > 0 && (
-            <Badge bg="danger" pill style={{ fontSize: '10px', padding: '2px 6px', flexShrink: 0 }}>
-              {badge}
-            </Badge>
-          )}
-        </>
-      )}
-      {!isOpen && badge > 0 && (
-        <Badge
-          bg="danger"
-          pill
-          style={{
-            position: 'absolute', top: '-2px', right: '-2px',
-            fontSize: '9px', padding: '2px 5px', minWidth: '16px'
-          }}
-        >
-          {badge}
-        </Badge>
+        <span className="hrms-nav-item__label">{label}</span>
       )}
     </NavLink>
   );
@@ -245,10 +195,8 @@ const Sidebar = () => {
               <NavItem to="/admin/send-update-request" icon={<FaPaperPlane />} label="Send Update Request" />
               <NavItem
                 to="/admin/update-approvals"
-                icon={<FaBell />}
+                icon={<FaEdit />}
                 label="Update Approvals"
-                badge={pendingCount}
-                onClick={() => { setPendingCount(0); /* markNotificationsAsRead(); Route effect handles this. */ }}
               />
               <NavItem to="/admin/broadcast" icon={<FaBullhorn />} label="Broadcast" />
               <NavItem to="/admin/email" icon={<FaEnvelope />} label="Email" />
@@ -288,10 +236,8 @@ const Sidebar = () => {
               <NavItem to="/admin/send-update-request" icon={<FaPaperPlane />} label="Send Update Request" />
               <NavItem
                 to="/admin/update-approvals"
-                icon={<FaBell />}
+                icon={<FaEdit />}
                 label="Update Approvals"
-                badge={pendingCount}
-                onClick={() => { setPendingCount(0); markNotificationsAsRead(); }}
               />
               <NavItem to="/admin/broadcast" icon={<FaBullhorn />} label="Broadcast" />
               <NavItem to="/admin/email" icon={<FaEnvelope />} label="Email" />

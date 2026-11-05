@@ -283,22 +283,6 @@ router.put('/:responseId/review', verifyToken, isAdmin, async (req, res) => {
 
         if (updateError) throw updateError;
 
-        // Create notification for employee
-        const notificationMessage = status === 'approved' 
-            ? 'Your update response has been approved.'
-            : `Your update response has been rejected.${comments ? ' Reason: ' + comments : ''}`;
-
-        await supabase
-            .from('notifications')
-            .insert([{
-                employee_id: response.employee_id,
-                title: `Response ${status === 'approved' ? 'Approved' : 'Rejected'}`,
-                message: notificationMessage,
-                type: `response_${status}`,
-                reference_id: responseId,
-                created_at: new Date().toISOString()
-            }]);
-
         res.json({
             success: true,
             message: `Response ${status} successfully`

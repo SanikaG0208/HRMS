@@ -1,5 +1,5 @@
 // backend/cron/breakOvertimeCheck.js
-// Backs the "Notify Emails" feature: every minute, checks every monitored
+// Backs the "Notify Emails" feature: every 10 minutes, checks every monitored
 // employee's open/just-ended breaks and emails the configured recipients when
 // a break runs over its allowed duration, and again when it ends. Runs
 // server-side so it keeps working whether or not anyone has the app open —
@@ -140,16 +140,16 @@ const checkBreakOvertimeAndNotify = async () => {
     }
 };
 
-// Every minute — breaks run 15-30 min, so this is the shortest interval node-cron
-// sensibly supports while still catching overtime promptly.
+// Check every 10 minutes to reduce idle database traffic. Overtime alerts may be
+// delayed by up to 10 minutes after a break crosses its limit.
 const scheduleBreakOvertimeCheck = () => {
-    cron.schedule('* * * * *', async () => {
+    cron.schedule('*/10 * * * *', async () => {
         await checkBreakOvertimeAndNotify();
     }, {
         scheduled: true,
         timezone: 'Asia/Kolkata',
     });
-    console.log('📅 [breakOvertimeCheck] Cron scheduled — runs every minute');
+    console.log('📅 [breakOvertimeCheck] Cron scheduled — runs every 10 minutes');
 };
 
 module.exports = { scheduleBreakOvertimeCheck, checkBreakOvertimeAndNotify };

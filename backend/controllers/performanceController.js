@@ -189,17 +189,6 @@ const submitReview = async (req, res) => {
       saved = data;
     }
 
-    // Notify the reviewed employee
-    try {
-      await supabase.from('notifications').insert({
-        employee_id,
-        type:    'performance_review',
-        title:   'Performance Review Submitted',
-        message: `Your performance review for ${new Date(year, month - 1).toLocaleString('default', { month: 'long' })} ${year} has been submitted. Rating: ${rating}/5 – ${getRatingLabel(rating)}.`,
-        is_read: false,
-      });
-    } catch (_) { /* notification failure is non-fatal */ }
-
     res.json({
       success: true,
       message: existing ? 'Review updated' : 'Review submitted',

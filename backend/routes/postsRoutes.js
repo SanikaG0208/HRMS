@@ -283,24 +283,6 @@ module.exports = (supabase, authenticateToken) => {
             }
             if (error) throw error;
 
-            // Notify anyone tagged in the post — best-effort, never blocks the post itself.
-            if ((mentioned_employees || []).length > 0) {
-                try {
-                    const rows = mentioned_employees
-                        .filter(m => (m.employee_id || m) !== employeeId)
-                        .map(m => ({
-                            employee_id: m.employee_id || m,
-                            type: 'post_mention',
-                            title: 'You were tagged in a post',
-                            message: `${authorName} tagged you in a post: "${(content || '').trim().slice(0, 80)}"`,
-                            is_read: false,
-                        }));
-                    if (rows.length > 0) await supabase.from('notifications').insert(rows);
-                } catch (notifyErr) {
-                    console.error('[posts] mention notification failed:', notifyErr);
-                }
-            }
-
             const authorPhoto = await getEmployeePhoto(employeeId);
             return res.json({ success: true, post: decoratePost({ ...data, author_photo: authorPhoto }, employeeId, {}, {}, req.user.role) });
         } catch (err) {
