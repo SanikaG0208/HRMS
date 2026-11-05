@@ -28,7 +28,6 @@ const employeeRoutes      = require('./routes/employeeRoutes');
 const leaveRoutes         = require('./routes/leaveRoutes');
 const attendanceRoutes    = require('./routes/attendanceRoutes');
 const salaryRoutes        = require('./routes/salaryRoutes');
-const notificationRoutes  = require('./routes/notificationRoutes');
 const adminUpdateRoutes   = require('./routes/adminUpdateRoutes');
 const employeeUpdateRoutes = require('./routes/employeeUpdateRoutes');
 const updateResponseRoutes = require('./routes/updateResponseRoutes');
@@ -219,7 +218,6 @@ app.use('/api/employees',        authenticateToken, employeeRoutes);
 app.use('/api/leaves',           authenticateToken, leaveRoutes);
 app.use('/api/attendance',       authenticateToken, housekeeperNetworkGate, attendanceRoutes(supabase, authenticateToken, requireAdmin));
 app.use('/api/salary',           authenticateToken, salaryRoutes);
-app.use('/api/notifications',    authenticateToken, notificationRoutes);
 app.use('/api/admin-updates',    authenticateToken, adminUpdateRoutes);
 app.use('/api/employee-updates', authenticateToken, employeeUpdateRoutes);
 app.use('/api/update-responses', authenticateToken, updateResponseRoutes);
@@ -321,13 +319,12 @@ if (require.main === module) {
             }).catch(e => console.error('❌ Startup missing-clockout error:', e.message));
         }
 
-        // ── Break overtime notification cron (every 1 min) ─────────────────
+        // ── Break overtime notification cron (every 10 min) ────────────────
         // Only meaningful on a long-running Node process — node-cron can't stay
         // resident on Vercel's serverless functions, so this doesn't run there.
         // See routes/cronRoutes.js's /break-monitor for the serverless equivalent,
-        // though Vercel Hobby's daily-only cron granularity (see vercel.json) can't
-        // give it the same near-real-time behavior; a minute-level external
-        // scheduler hitting that endpoint is the production-on-Vercel option.
+        // though Vercel Hobby's daily-only cron granularity (see vercel.json) cannot
+        // provide the same alert timing; an external scheduler can call that endpoint.
         if (!process.env.VERCEL) {
             const { scheduleBreakOvertimeCheck } = require('./cron/breakOvertimeCheck');
             scheduleBreakOvertimeCheck();

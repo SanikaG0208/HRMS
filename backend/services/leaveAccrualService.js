@@ -156,21 +156,6 @@ class LeaveAccrualService {
 
                     console.log(`   ✅ Added ${MONTHLY_ACCRUAL_RATE} leaves for ${monthName}`);
 
-                    // Create notification
-                    try {
-                        await supabase
-                            .from('notifications')
-                            .insert([{
-                                employee_id: emp.employee_id,
-                                title: 'Leave Accrual',
-                                message: `${MONTHLY_ACCRUAL_RATE} leaves have been added to your account for ${monthName} ${currentYear}.`,
-                                type: 'leave_accrual',
-                                created_at: today.toISOString()
-                            }]);
-                    } catch (notifError) {
-                        console.log(`   ⚠️ Could not create notification: ${notifError.message}`);
-                    }
-
                     // Small delay to avoid rate limiting
                     await new Promise(resolve => setTimeout(resolve, 50));
 

@@ -1,5 +1,5 @@
 // backend/cron/breakOvertimeCheck.js
-// Backs the "Notify Emails" feature: every minute, checks every monitored
+// Backs the "Notify Emails" feature: every 10 minutes, checks every monitored
 // employee's open/just-ended breaks and emails the configured recipients when
 // a break runs over its allowed duration, and again when it ends. Runs
 // server-side so it keeps working whether or not anyone has the app open —
@@ -33,19 +33,24 @@ const getActiveSettings = async () => {
     }
     const monitoredIds = data?.monitored_employee_ids || [];
     const notifyEmails = data?.notify_emails || [];
-    // Business rule: only active when an employee is selected AND at least one
-    // notification email is configured.
+    // The database trigger keeps this list active-only; skip all break queries when empty.
     if (monitoredIds.length === 0 || notifyEmails.length === 0) return null;
+
     return { monitoredIds, notifyEmails };
 };
 
 const employeeNameMap = async (employeeIds) => {
     if (employeeIds.length === 0) return {};
-    const { data } = await supabase.from('employees')
+    const { data, error } = await supabase.from('employees')
         .select('employee_id, first_name, last_name')
-        .in('employee_id', employeeIds);
+        .in('employee_id', employeeIds)
+        .eq('is_active', true);
+    if (error) throw error;
+
     const map = {};
-    (data || []).forEach(e => { map[e.employee_id] = `${e.first_name || ''} ${e.last_name || ''}`.trim() || e.employee_id; });
+    (data || []).forEach(employee => {
+        map[employee.employee_id] = `${employee.first_name || ''} ${employee.last_name || ''}`.trim() || employee.employee_id;
+    });
     return map;
 };
 
@@ -54,8 +59,6 @@ const checkBreakOvertimeAndNotify = async () => {
         const settings = await getActiveSettings();
         if (!settings) return { checked: 0, overtimeSent: 0, endedSent: 0 };
         const { monitoredIds, notifyEmails } = settings;
-
-        const nameMap = await employeeNameMap(monitoredIds);
         let overtimeSent = 0, endedSent = 0;
 
         // ── Overtime: still-open breaks past their allowed duration, not yet notified ──
@@ -66,6 +69,21 @@ const checkBreakOvertimeAndNotify = async () => {
             .is('break_end', null)
             .is('overtime_notified_at', null);
         if (openErr) throw openErr;
+
+        // ── Ended: breaks that finished but haven't had their "ended" email sent ──
+        const { data: endedBreaks, error: endedErr } = await supabase.from('employee_breaks')
+            .select('id, employee_id, break_type, break_start, break_end, break_duration_minutes')
+            .in('employee_id', monitoredIds)
+            .in('break_type', MONITORED_TYPES)
+            .not('break_end', 'is', null)
+            .is('ended_notified_at', null);
+        if (endedErr) throw endedErr;
+
+        const pendingEmployeeIds = [...new Set([
+            ...(openBreaks || []).map(breakRecord => breakRecord.employee_id),
+            ...(endedBreaks || []).map(breakRecord => breakRecord.employee_id),
+        ])];
+        const nameMap = await employeeNameMap(pendingEmployeeIds);
 
         const now = Date.now();
         for (const b of (openBreaks || [])) {
@@ -83,19 +101,11 @@ const checkBreakOvertimeAndNotify = async () => {
 
             // Mark as notified regardless of email success — a transient Resend failure
             // shouldn't cause the same overtime alert to resend every minute forever.
-            await supabase.from('employee_breaks')
+            const { error: markError } = await supabase.from('employee_breaks')
                 .update({ overtime_notified_at: new Date().toISOString() })
                 .eq('id', b.id);
+            if (markError) throw markError;
         }
-
-        // ── Ended: breaks that finished but haven't had their "ended" email sent ──
-        const { data: endedBreaks, error: endedErr } = await supabase.from('employee_breaks')
-            .select('id, employee_id, break_type, break_start, break_end, break_duration_minutes')
-            .in('employee_id', monitoredIds)
-            .in('break_type', MONITORED_TYPES)
-            .not('break_end', 'is', null)
-            .is('ended_notified_at', null);
-        if (endedErr) throw endedErr;
 
         for (const b of (endedBreaks || [])) {
             const spec = BREAK_TYPES[b.break_type];
@@ -114,9 +124,10 @@ const checkBreakOvertimeAndNotify = async () => {
             });
             if (result.success) endedSent++;
 
-            await supabase.from('employee_breaks')
+            const { error: markError } = await supabase.from('employee_breaks')
                 .update({ ended_notified_at: new Date().toISOString() })
                 .eq('id', b.id);
+            if (markError) throw markError;
         }
 
         if (overtimeSent > 0 || endedSent > 0) {
@@ -129,16 +140,16 @@ const checkBreakOvertimeAndNotify = async () => {
     }
 };
 
-// Every minute — breaks run 15-30 min, so this is the shortest interval node-cron
-// sensibly supports while still catching overtime promptly.
+// Check every 10 minutes to reduce idle database traffic. Overtime alerts may be
+// delayed by up to 10 minutes after a break crosses its limit.
 const scheduleBreakOvertimeCheck = () => {
-    cron.schedule('* * * * *', async () => {
+    cron.schedule('*/10 * * * *', async () => {
         await checkBreakOvertimeAndNotify();
     }, {
         scheduled: true,
         timezone: 'Asia/Kolkata',
     });
-    console.log('📅 [breakOvertimeCheck] Cron scheduled — runs every minute');
+    console.log('📅 [breakOvertimeCheck] Cron scheduled — runs every 10 minutes');
 };
 
 module.exports = { scheduleBreakOvertimeCheck, checkBreakOvertimeAndNotify };

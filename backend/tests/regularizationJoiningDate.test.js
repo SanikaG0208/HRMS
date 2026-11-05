@@ -14,7 +14,6 @@ inject('../controllers/attendanceController.js',{_shared:{nowIST:()=> '2026-10-1
 inject('../services/regularizationService.js',{ELEVATED_ROLES:['admin','hr','sub_admin']});
 inject('../lib/supabaseStorage.js',{uploadFile:()=>{throw Error('Unexpected upload');}});
 inject('../utils/employeeLookup.js',{});
-inject('../services/notificationService.js',{});
 const {createRequest}=require('../controllers/regularizationController');
 async function run(date,role='employee',type='other'){
  let status,body;

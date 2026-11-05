@@ -26,24 +26,6 @@ router.get('/employees', verifyToken, isAdmin, async (req, res) => {
     }
 });
 
-// Get pending requests count
-router.get('/pending-count', verifyToken, isAdmin, async (req, res) => {
-    try {
-        const { count, error } = await supabase
-            .from('update_requests')
-            .select('*', { count: 'exact', head: true })
-            .eq('status', 'completed');
-
-        if (error) throw error;
-
-        res.json({ count: count || 0 });
-
-    } catch (error) {
-        console.error('❌ Error fetching pending count:', error);
-        res.json({ count: 0 });
-    }
-});
-
 // Get all pending requests
 router.get('/pending-requests', verifyToken, isAdmin, async (req, res) => {
     try {
@@ -123,25 +105,6 @@ router.post('/send-request', verifyToken, isAdmin, async (req, res) => {
             .select();
 
         if (error) throw error;
-
-        // Create notification for employee
-        let notificationMessage = `Admin has requested you to update your ${requested_fields.join(', ')} information.`;
-
-        if (isDocumentUpdate) {
-            notificationMessage = `Admin has requested you to upload the following documents: ${document_types.join(', ')}.`;
-        }
-
-        await supabase
-            .from('notifications')
-            .insert([{
-                employee_id: employee_id,
-                title: 'Information Update Request',
-                message: notificationMessage,
-                type: 'update_request',
-                reference_id: data[0].id,
-                is_read: false,
-                created_at: new Date().toISOString()
-            }]);
 
         res.status(201).json({
             success: true,
@@ -415,45 +378,6 @@ router.post('/handle-request', verifyToken, isAdmin, async (req, res) => {
 
         console.log(`✅ Request ${action}ed successfully, new status: ${newStatus}`);
 
-        // Create notification for employee
-        let notificationMessage = '';
-        let notificationTitle = '';
-
-        if (action === 'approve') {
-            if (request.is_document_update) {
-                notificationTitle = 'Documents Approved';
-                notificationMessage = `Your uploaded documents (${request.document_types?.map(d => d.replace(/_/g, ' ').toUpperCase()).join(', ')}) have been approved by admin.`;
-            } else {
-                notificationTitle = 'Update Request Approved';
-                notificationMessage = 'Your information update request has been approved by admin.';
-            }
-        } else {
-            if (request.is_document_update) {
-                notificationTitle = 'Documents Rejected';
-                notificationMessage = `Your uploaded documents have been rejected by admin. Please upload again if needed.`;
-            } else {
-                notificationTitle = 'Update Request Rejected';
-                notificationMessage = `Your information update request has been rejected by admin.`;
-            }
-        }
-
-        try {
-            await supabase
-                .from('notifications')
-                .insert([{
-                    employee_id: request.employee_id,
-                    title: notificationTitle,
-                    message: notificationMessage,
-                    type: `update_${action === 'approve' ? 'approved' : 'rejected'}`,
-                    reference_id: request_id,
-                    created_at: new Date().toISOString(),
-                    read: false
-                }]);
-            console.log('✅ Notification created for employee');
-        } catch (notifError) {
-            console.error('⚠️ Error creating notification:', notifError);
-        }
-
         res.json({
             success: true,
             message: `Request ${action === 'approve' ? 'approved' : 'rejected'} successfully`,
@@ -483,34 +407,6 @@ router.post('/handle-request', verifyToken, isAdmin, async (req, res) => {
         res.status(500).json({
             success: false,
             message: 'Error processing request',
-            error: error.message
-        });
-    }
-});
-
-// Mark all notifications as read for admin
-router.post('/mark-notifications-read', verifyToken, isAdmin, async (req, res) => {
-    try {
-        console.log('📋 Marking all notifications as read for admin:', req.userId);
-
-        const { error } = await supabase
-            .from('admin_notifications')
-            .update({ is_read: true })
-            .eq('admin_id', req.userId)
-            .eq('is_read', false);
-
-        if (error) throw error;
-
-        res.json({
-            success: true,
-            message: 'All notifications marked as read'
-        });
-
-    } catch (error) {
-        console.error('❌ Error marking notifications as read:', error);
-        res.status(500).json({
-            success: false,
-            message: 'Error marking notifications as read',
             error: error.message
         });
     }

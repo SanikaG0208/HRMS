@@ -50,12 +50,13 @@ router.get('/missing-clockout', cronAuth, async (req, res) => {
     }
 });
 
-// GET /api/cron/break-monitor — every minute, ideally (external trigger).
+// GET /api/cron/break-monitor — external trigger; schedule every 10 minutes to
+// match the long-running Node.js cron and limit database traffic.
 // Vercel Hobby's cron config only supports daily schedules (see vercel.json), so this
 // isn't wired into the `crons` array there — on Vercel, near-real-time break-overtime
 // alerts need an external scheduler (cron-job.org, GitHub Actions, etc.) hitting this
-// endpoint every minute with the CRON_SECRET bearer token. Off Vercel, the local
-// node-cron in cron/breakOvertimeCheck.js already does this every minute on its own.
+// endpoint with the CRON_SECRET bearer token. Off Vercel, node-cron in
+// cron/breakOvertimeCheck.js runs this check every 10 minutes on its own.
 router.get('/break-monitor', cronAuth, async (req, res) => {
     const t = Date.now();
     try {

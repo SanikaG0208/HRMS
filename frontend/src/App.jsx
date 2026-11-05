@@ -17,7 +17,6 @@ import NetworkBlocked from './components/Auth/NetworkBlocked';
 // Context
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { NotificationProvider } from './context/NotificationContext';
-import GlobalNotification from './components/Common/GlobalNotification';
 import { Spinner } from 'react-bootstrap';
 
 // Admin — lazy loaded (only fetched when the route is visited)
@@ -463,7 +462,7 @@ function AppContent() {
                 <TicketList />
               </PrivateRoute>
             } />
-            {/* Deep link to a specific ticket (e.g. from a notification) — same component,
+            {/* Deep link to a specific ticket — same component,
                 TicketList reads the :id param and opens that ticket's detail modal. */}
             <Route path="/tickets/:id" element={
               <PrivateRoute allowedRoles={['admin', 'sub_admin', 'manager', 'employee', 'hr']}>
@@ -478,8 +477,6 @@ function AppContent() {
         </div>
       </div>
 
-      {/* Global Notification */}
-      <GlobalNotification />
     </div>
   );
 }

@@ -93,6 +93,7 @@ export const API_ENDPOINTS = {
   ATTENDANCE_EMPLOYEE_REPORT: (employeeId, start, end) =>
     ep(`/api/attendance/employee-report/${employeeId}?start=${start}&end=${end}`),
   ATTENDANCE_TODAY:       (employeeId) => ep(`/api/attendance/today/${employeeId}`),
+  ATTENDANCE_EMPLOYEE_COUNT: (employeeId) => ep(`/api/attendance/employee-count/${encodeURIComponent(employeeId)}`),
   ATTENDANCE_CLOCK_OUT_PREVIEW: (employeeId) => ep(`/api/attendance/clock-out-preview/${employeeId}`),
   ATTENDANCE_CLOCK_IN:    ep('/api/attendance/clock-in'),
   ATTENDANCE_CLOCK_OUT:   ep('/api/attendance/clock-out'),
@@ -156,15 +157,6 @@ export const API_ENDPOINTS = {
   SALARY_DELETE:        (id) => ep(`/api/salary/${id}`),
   SALARY_UPDATE:        (id) => ep(`/api/salary/${id}`),
 
-  // Notifications
-  NOTIFICATIONS:        ep('/api/notifications'),
-  NOTIFICATION_READ:    (id) => ep(`/api/notifications/${id}/read`),
-  NOTIFICATION_DELETE:  (id) => ep(`/api/notifications/${id}`),
-  NOTIFICATIONS_BY_EMPLOYEE:   (employeeId) => ep(`/api/notifications?employee_id=${employeeId}`),
-  NOTIFICATIONS_UNREAD_COUNT:  (employeeId) => ep(`/api/notifications/unread-count/${employeeId}`),
-  NOTIFICATION_PREFERENCES:        ep('/api/notifications/preferences'),
-  NOTIFICATION_PREFERENCES_UPDATE: ep('/api/notifications/preferences/update'),
-
   // Notices / Warnings
   NOTICES:              ep('/api/notices'),
   NOTICE_BY_ID:         (id) => ep(`/api/notices/${id}`),
@@ -187,8 +179,6 @@ export const API_ENDPOINTS = {
   ADMIN_UPDATES_SEND_REQUEST:   ep('/api/admin-updates/send-request'),
   ADMIN_UPDATES_COMPLETED:      ep('/api/admin-updates/completed-requests'),
   ADMIN_UPDATES_HANDLE:         ep('/api/admin-updates/handle-request'),
-  ADMIN_UPDATES_PENDING_COUNT:  ep('/api/admin-updates/pending-count'),
-  ADMIN_UPDATES_MARK_READ:      ep('/api/admin-updates/mark-notifications-read'),
   ADMIN_UPDATES_EMPLOYEE_REQUESTS: (employeeId) =>
     ep(`/api/admin-updates/employee-requests/${employeeId}`),
   ADMIN_UPDATES_SUBMIT: ep('/api/admin-updates/submit-update'),

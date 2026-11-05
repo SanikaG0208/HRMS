@@ -54,7 +54,6 @@
 
 const express = require('express');
 const router  = express.Router();
-const notificationService = require('../services/notificationService');
 const emailService = require('../services/emailService');
 const { AGE_THRESHOLDS_HOURS } = require('../config/ticketPolicy');
 const { getTeamEmployeeIdsByEmployeeId } = require('../utils/employeeLookup');
@@ -364,7 +363,6 @@ module.exports = (supabase, authenticateToken) => {
                 assigneeEmp ? `Assigned to ${assigneeEmp.first_name} ${assigneeEmp.last_name}` : `Sent to ${department} Team Queue — no specific assignee selected`,
                 null, null, employeeId, raiserName
             );
-            await notificationService.sendTicketNotifications(data, 'created', { actorEmployeeId: employeeId, actorName: raiserName });
 
             // Fire-and-forget: email the employee the ticket is actually about (raised_for,
             // defaults to the raiser themselves) — never blocks the response.
@@ -440,17 +438,9 @@ module.exports = (supabase, authenticateToken) => {
                     status: 'reopened', resolved_at: null, updated_at: now,
                 }).eq('id', ticket.id);
                 await addHistory(ticket.id, 'status_changed', `Reopened automatically — ${name} replied after resolution`, 'resolved_pending', 'reopened', employeeId, name);
-                await notificationService.sendTicketNotifications({ ...ticket, status: 'reopened' }, 'reopened', { actorEmployeeId: employeeId, actorName: name });
                 notifyTicketStatusEmail({ ...ticket, status: 'reopened' }, 'reopened', name);
             } else {
                 await supabase.from('support_tickets').update({ updated_at: now }).eq('id', ticket.id);
-                if (!wantsInternal) {
-                    await notificationService.sendTicketNotifications(
-                        ticket,
-                        isRaiser ? 'comment_from_employee' : 'comment_from_team',
-                        { actorEmployeeId: employeeId, actorName: name }
-                    );
-                }
             }
 
             return res.json({ success: true });
@@ -476,7 +466,6 @@ module.exports = (supabase, authenticateToken) => {
             const oldStatus = ticket.status;
             await supabase.from('support_tickets').update({ status: 'in_progress', updated_at: new Date().toISOString() }).eq('id', req.params.id);
             await addHistory(req.params.id, 'status_changed', `Marked as In Progress by ${name}`, oldStatus, 'in_progress', employeeId, name);
-            await notificationService.sendTicketNotifications({ ...ticket, status: 'in_progress' }, 'in_progress', { actorEmployeeId: employeeId, actorName: name });
             notifyTicketStatusEmail({ ...ticket, status: 'in_progress' }, 'in_progress', name);
 
             return res.json({ success: true });
@@ -509,7 +498,6 @@ module.exports = (supabase, authenticateToken) => {
             }).eq('id', req.params.id);
 
             await addHistory(req.params.id, 'resolved', resolve_note || `Resolved by ${name}. Awaiting employee confirmation.`, ticket.status, 'resolved_pending', employeeId, name);
-            await notificationService.sendTicketNotifications({ ...ticket, status: 'resolved_pending' }, 'resolved', { actorEmployeeId: employeeId, actorName: name });
             notifyTicketStatusEmail({ ...ticket, status: 'resolved_pending' }, 'resolved_pending', name, resolve_note);
 
             return res.json({ success: true });
@@ -537,7 +525,6 @@ module.exports = (supabase, authenticateToken) => {
 
             await supabase.from('support_tickets').update({ status: 'closed', closed_at: now, updated_at: now }).eq('id', req.params.id);
             await addHistory(req.params.id, 'closed', `Issue confirmed resolved by ${name}. Ticket closed.`, 'resolved_pending', 'closed', employeeId, name);
-            await notificationService.sendTicketNotifications({ ...ticket, status: 'closed' }, 'closed', { actorEmployeeId: employeeId, actorName: name });
             notifyTicketStatusEmail({ ...ticket, status: 'closed' }, 'closed', name);
 
             return res.json({ success: true });
@@ -570,7 +557,6 @@ module.exports = (supabase, authenticateToken) => {
             }).eq('id', req.params.id);
 
             await addHistory(req.params.id, 'reopened', reason ? `Declined by ${name}: ${reason}` : `Declined by ${name} — issue not resolved. Ticket reopened.`, 'resolved_pending', 'reopened', employeeId, name);
-            await notificationService.sendTicketNotifications({ ...ticket, status: 'reopened' }, 'reopened', { actorEmployeeId: employeeId, actorName: name });
             notifyTicketStatusEmail({ ...ticket, status: 'reopened' }, 'reopened', name, reason);
 
             return res.json({ success: true });

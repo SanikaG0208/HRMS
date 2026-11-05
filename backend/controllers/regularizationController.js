@@ -10,7 +10,6 @@ const {
     ELEVATED_ROLES, resolveApprover, canViewRequest, canActOnRequest,
     buildScopedEmployeeIds, recalculateAttendanceForApprovedRequest, isPayrollLocked,
 } = require('../services/regularizationService');
-const notificationService = require('../services/notificationService');
 
 const VALID_REQUEST_TYPES = [
     'missing_clock_in', 'missing_clock_out', 'attendance_correction',
@@ -170,10 +169,6 @@ exports.createRequest = async (req, res) => {
             regularization_id: created.id, action: 'created', message: reason.trim(),
             old_status: null, new_status: 'pending',
             performed_by: employee_id, performed_by_name: fullName(employee) || employee_id,
-        });
-
-        await notificationService.sendRegularizationNotifications(created, 'created', {
-            actorName: fullName(employee) || employee_id,
         });
 
         res.status(201).json({ success: true, message: 'Regularization request submitted.', request: created });
@@ -340,8 +335,6 @@ exports.approveRequest = async (req, res) => {
             old_status: 'pending', new_status: 'approved', performed_by: req.user.employeeId, performed_by_name: actorName,
         });
 
-        await notificationService.sendRegularizationNotifications(updatedRequest, 'approved', { actorName });
-
         res.json({ success: true, message: 'Regularization request approved.', request: updatedRequest, attendance: updatedAttendance });
     } catch (error) {
         console.error('❌ Error in approveRequest:', error);
@@ -391,10 +384,6 @@ exports.rejectRequest = async (req, res) => {
             old_status: 'pending', new_status: 'rejected', performed_by: req.user.employeeId, performed_by_name: actorName,
         });
 
-        await notificationService.sendRegularizationNotifications(updatedRequest, 'rejected', {
-            actorName, comments: rejection_reason.trim(),
-        });
-
         res.json({ success: true, message: 'Regularization request rejected.', request: updatedRequest });
     } catch (error) {
         console.error('❌ Error in rejectRequest:', error);
@@ -436,8 +425,6 @@ exports.cancelRequest = async (req, res) => {
             regularization_id: request_id, action: 'cancelled', message: null,
             old_status: 'pending', new_status: 'cancelled', performed_by: req.user.employeeId, performed_by_name: actorName,
         });
-
-        await notificationService.sendRegularizationNotifications(updatedRequest, 'cancelled', { actorName });
 
         res.json({ success: true, message: 'Regularization request cancelled.', request: updatedRequest });
     } catch (error) {

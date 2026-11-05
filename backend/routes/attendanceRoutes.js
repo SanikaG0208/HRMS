@@ -35,6 +35,7 @@ module.exports = (supabase, authenticateToken, requireAdmin) => {
 
     // Get today's attendance for an employee
     router.get('/today/:employee_id', attendanceController.getTodayAttendance);
+    router.get('/employee-count/:employee_id', authenticateToken, attendanceController.getEmployeeAttendanceCount);
 
     // Live "what would happen if I clocked out right now" preview — powers the Clock Out
     // confirmation popup's Half Day warning on the dashboards.
@@ -359,13 +360,35 @@ module.exports = (supabase, authenticateToken, requireAdmin) => {
         }
     });
 
+    // GET /api/attendance/break/today-count
+    // Count only today's break rows; no break records are returned.
+    router.get('/break/today-count', authenticateToken, async (req, res) => {
+        const employeeId = req.user.employeeId;
+        try {
+            const istNow = new Date(Date.now() + 5.5 * 60 * 60 * 1000);
+            const todayIST = istNow.toISOString().split('T')[0];
+            const { count, error } = await supabase
+                .from('employee_breaks')
+                .select('id', { count: 'exact', head: true })
+                .eq('employee_id', employeeId)
+                .eq('attendance_date', todayIST);
+            if (error) throw error;
+            return res.json({ success: true, count: count || 0 });
+        } catch (err) {
+            console.error('[break] today count error:', err);
+            return res.status(500).json({ success: false, message: 'Failed to fetch today break count' });
+        }
+    });
+
     // GET /api/attendance/break/my-status
     // Returns active break + which break types have been used this clock-in session
     router.get('/break/my-status', authenticateToken, async (req, res) => {
         const employeeId = req.user.employeeId;
         try {
+            const istNow = new Date(Date.now() + 5.5 * 60 * 60 * 1000);
+            const todayIST = istNow.toISOString().split('T')[0];
             // Find the current open attendance session
-            const { data: att } = await supabase.from('attendance')
+            const { data: att, error: attendanceError } = await supabase.from('attendance')
                 .select('clock_in')
                 .eq('employee_id', employeeId)
                 .not('clock_in', 'is', null)
@@ -373,26 +396,42 @@ module.exports = (supabase, authenticateToken, requireAdmin) => {
                 .order('clock_in', { ascending: false })
                 .limit(1)
                 .maybeSingle();
+            if (attendanceError) throw attendanceError;
 
-            if (!att?.clock_in) {
-                return res.json({ success: true, active_break: null, used_break_types: [], total_break_minutes_today: 0, total_break_seconds_today: 0 });
-            }
+            const selectBreakRows = (includeBreakNote) => {
+                let query = supabase.from('employee_breaks')
+                    .select(includeBreakNote
+                        ? 'id, break_type, break_start, break_end, break_duration_minutes, attendance_date, break_note'
+                        : 'id, break_type, break_start, break_end, break_duration_minutes, attendance_date')
+                    .eq('employee_id', employeeId);
+                query = att?.clock_in
+                    ? query.or(`attendance_date.eq.${todayIST},break_start.gte.${att.clock_in}`)
+                    : query.eq('attendance_date', todayIST);
+                return query.order('break_start', { ascending: true });
+            };
 
-            // All breaks since this clock-in
-            let { data: sessionBreaks, error } = await supabase.from('employee_breaks')
-                .select('id, break_type, break_start, break_end, break_duration_minutes, attendance_date, break_note')
-                .eq('employee_id', employeeId)
-                .gte('break_start', att.clock_in)
-                .order('break_start', { ascending: true });
+            let { data: breakRows, error } = await selectBreakRows(true);
             if (error && /break_note|does not exist|schema cache/i.test(error.message || '')) {
-                ({ data: sessionBreaks, error } = await supabase.from('employee_breaks')
-                    .select('id, break_type, break_start, break_end, break_duration_minutes, attendance_date')
-                    .eq('employee_id', employeeId)
-                    .gte('break_start', att.clock_in)
-                    .order('break_start', { ascending: true }));
+                ({ data: breakRows, error } = await selectBreakRows(false));
             }
             if (error) throw error;
 
+            const todayBreaks = (breakRows || []).filter(b => b.attendance_date === todayIST);
+            if (!att?.clock_in) {
+                return res.json({
+                    success: true,
+                    active_break: null,
+                    used_break_types: [],
+                    today_breaks: todayBreaks,
+                    total_break_minutes_today: 0,
+                    total_break_seconds_today: 0,
+                });
+            }
+
+            const clockInTime = new Date(att.clock_in).getTime();
+            const sessionBreaks = (breakRows || []).filter(
+                b => new Date(b.break_start).getTime() >= clockInTime,
+            );
             const used_break_types = (sessionBreaks || []).filter(b => b.break_end).map(b => b.break_type);
             const active_break = (sessionBreaks || []).find(b => !b.break_end) || null;
             // Summed from raw start/end timestamps (not the rounded-to-minutes column)
@@ -402,7 +441,15 @@ module.exports = (supabase, authenticateToken, requireAdmin) => {
                 .reduce((sum, b) => sum + Math.round((new Date(b.break_end) - new Date(b.break_start)) / 1000), 0);
             const total_break_minutes_today = Math.round(total_break_seconds_today / 60);
 
-            return res.json({ success: true, active_break, used_break_types, session_breaks: sessionBreaks || [], total_break_minutes_today, total_break_seconds_today });
+            return res.json({
+                success: true,
+                active_break,
+                used_break_types,
+                session_breaks: sessionBreaks || [],
+                today_breaks: todayBreaks || [],
+                total_break_minutes_today,
+                total_break_seconds_today,
+            });
         } catch (err) {
             return res.status(500).json({ success: false, message: err.message });
         }
