@@ -2119,6 +2119,70 @@ exports.heartbeat = async (req, res) => {
     }
 };
 
+exports.getEmployeeAttendanceCount = async (req, res) => {
+    try {
+        const { employee_id } = req.params;
+        const callerRole = req.user?.role;
+        const canViewOtherEmployees = ['admin', 'hr', 'sub_admin'].includes(callerRole);
+
+        if (!employee_id) {
+            return res.status(400).json({ success: false, message: 'Employee ID is required' });
+        }
+        if (req.user?.employeeId !== employee_id && !canViewOtherEmployees) {
+            return res.status(403).json({ success: false, message: 'Access denied' });
+        }
+
+        const today = nowIST().split(' ')[0];
+        const monthStart = `${today.slice(0, 7)}-01`;
+        const countAttendanceRows = async (filters) => {
+            let query = supabase
+                .from('attendance')
+                .select('attendance_date', { count: 'exact', head: true })
+                .eq('employee_id', employee_id)
+                .gte('attendance_date', monthStart)
+                .lte('attendance_date', today);
+
+            filters.forEach(([column, operator, value]) => {
+                query = operator === 'in'
+                    ? query.in(column, value)
+                    : query.eq(column, value);
+            });
+
+            const { count, error } = await query;
+            if (error) throw error;
+            return count || 0;
+        };
+
+        const [presentRows, absentRows, halfDay, onLeave, markedLeave, leaveTypes] = await Promise.all([
+            countAttendanceRows([['status', 'eq', 'present']]),
+            countAttendanceRows([['status', 'eq', 'absent'], ['is_holiday', 'eq', false]]),
+            countAttendanceRows([['status', 'eq', 'half_day']]),
+            countAttendanceRows([['status', 'eq', 'on_leave']]),
+            countAttendanceRows([['status', 'eq', 'absent'], ['holiday_name', 'eq', 'Leave']]),
+            countAttendanceRows([
+                ['status', 'eq', 'present'],
+                ['attendance_type', 'in', ['paid_leave', 'comp_off', 'birthday_leave']],
+            ]),
+        ]);
+
+        return res.json({
+            success: true,
+            counts: {
+                present: Math.max(0, presentRows - leaveTypes),
+                absent: Math.max(0, absentRows - markedLeave),
+                on_leave: onLeave + markedLeave + leaveTypes,
+                half_day: halfDay,
+            },
+        });
+    } catch (error) {
+        console.error('Error fetching employee attendance count:', error);
+        return res.status(500).json({
+            success: false,
+            message: 'Failed to fetch attendance count',
+        });
+    }
+};
+
 // Get employee attendance report
 exports.getEmployeeAttendanceReport = async (req, res) => {
     try {

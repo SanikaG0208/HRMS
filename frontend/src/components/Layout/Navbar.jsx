@@ -488,20 +488,22 @@ const Navbar = () => {
               </Dropdown.Item>
             )}
 
-            <Dropdown.Item
-              as={Link}
-              to={user?.role === 'admin' || user?.role === 'sub_admin' || user?.role === 'hr' ? '/admin/update-requests' : '/employee/update-requests'}
-              style={{
-                borderRadius: 'var(--radius-sm)', fontSize: '13px', padding: '8px 12px',
-                display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-primary)',
-              }}
-            >
-              <FaEdit size={12} style={{ color: 'var(--text-muted)' }} />
-              Update Requests
-              {pendingCount > 0 && (
-                <Badge bg="danger" pill style={{ marginLeft: 'auto', fontSize: '10px' }}>{pendingCount}</Badge>
-              )}
-            </Dropdown.Item>
+            {['admin', 'sub_admin', 'hr'].includes(user?.role) && (
+              <Dropdown.Item
+                as={Link}
+                to="/admin/update-requests"
+                style={{
+                  borderRadius: 'var(--radius-sm)', fontSize: '13px', padding: '8px 12px',
+                  display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-primary)',
+                }}
+              >
+                <FaEdit size={12} style={{ color: 'var(--text-muted)' }} />
+                Update Requests
+                {pendingCount > 0 && (
+                  <Badge bg="danger" pill style={{ marginLeft: 'auto', fontSize: '10px' }}>{pendingCount}</Badge>
+                )}
+              </Dropdown.Item>
+            )}
 
             <Dropdown.Divider style={{ margin: '6px 0', borderColor: 'var(--border)' }} />
 

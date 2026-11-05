@@ -10,6 +10,8 @@ process.env.JWT_SECRET = process.env.JWT_SECRET || 'test-only-secret';
 const jwt = require('jsonwebtoken');
 
 const writes = [];
+const reads = [];
+let mockActiveAttendance = false;
 function makeQuery(table) {
     let op = 'select';
     let payload = null;
@@ -26,7 +28,11 @@ function makeQuery(table) {
     q.delete = () => { op = 'delete'; return q; };
     q.then = (resolve, reject) => {
         if (op !== 'select') writes.push({ table, op, payload, filters: [...filters] });
-        return Promise.resolve({ data: single ? null : [], error: null, count: 0 }).then(resolve, reject);
+        else reads.push({ table, filters: [...filters] });
+        const data = table === 'attendance' && single && mockActiveAttendance
+            ? { clock_in: '2026-11-05T09:00:00.000Z' }
+            : single ? null : [];
+        return Promise.resolve({ data, error: null, count: 0 }).then(resolve, reject);
     };
     return q;
 }
@@ -77,13 +83,24 @@ after(async () => {
     console.log = originalLog;
     console.warn = originalWarn;
 });
-beforeEach(() => { writes.length = 0; warnings.length = 0; });
+beforeEach(() => {
+    writes.length = 0;
+    reads.length = 0;
+    warnings.length = 0;
+    mockActiveAttendance = false;
+});
 
 const post = async (p, body, tok) => {
     const res = await fetch(base + p, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', ...(tok ? { Authorization: `Bearer ${tok}` } : {}) },
         body: JSON.stringify(body),
+    });
+    return { status: res.status, body: await res.json() };
+};
+const get = async (p, tok) => {
+    const res = await fetch(base + p, {
+        headers: tok ? { Authorization: `Bearer ${tok}` } : {},
     });
     return { status: res.status, body: await res.json() };
 };
@@ -133,6 +150,7 @@ describe('legitimate self-service punches still pass the ownership check', () =>
             assert.notEqual(r.body.code, 'NOT_OWN_ATTENDANCE');
             assert.notEqual(r.status, 403, `got 403: ${JSON.stringify(r.body)}`);
         });
+
     }
 
     test('admins and managers can still punch their own attendance', async () => {
@@ -159,6 +177,52 @@ describe('legitimate self-service punches still pass the ownership check', () =>
     test('unauthenticated requests are still rejected with 401', async () => {
         const r = await post('/api/attendance/clock-in', { employee_id: 'TEST001' });
         assert.equal(r.status, 401);
+    });
+});
+
+describe('employee attendance count', () => {
+    test('employees can only retrieve their own count', async () => {
+        const own = await get('/api/attendance/employee-count/TEST001', EMPLOYEE);
+        assert.equal(own.status, 200);
+        assert.deepEqual(own.body.counts, {
+            present: 0,
+            absent: 0,
+            on_leave: 0,
+            half_day: 0,
+        });
+
+        const other = await get('/api/attendance/employee-count/TEST002', EMPLOYEE);
+        assert.equal(other.status, 403);
+    });
+
+    test('count endpoint requires authentication', async () => {
+        const response = await get('/api/attendance/employee-count/TEST001');
+        assert.equal(response.status, 401);
+    });
+});
+
+describe('employee break status', () => {
+    test('returns today break history even when the employee is not clocked in', async () => {
+        const response = await get('/api/attendance/break/my-status', EMPLOYEE);
+        assert.equal(response.status, 200);
+        assert.deepEqual(response.body.today_breaks, []);
+    });
+
+    test('loads current-session and today break data with one employee-breaks query', async () => {
+        mockActiveAttendance = true;
+        const response = await get('/api/attendance/break/my-status', EMPLOYEE);
+        assert.equal(response.status, 200);
+        assert.equal(reads.filter(({ table }) => table === 'employee_breaks').length, 1);
+    });
+
+    test('today count API requires authentication and returns a count only', async () => {
+        const response = await get('/api/attendance/break/today-count', EMPLOYEE);
+        assert.equal(response.status, 200);
+        assert.equal(response.body.count, 0);
+        assert.equal(response.body.breaks, undefined);
+
+        const unauthenticated = await get('/api/attendance/break/today-count');
+        assert.equal(unauthenticated.status, 401);
     });
 });
 

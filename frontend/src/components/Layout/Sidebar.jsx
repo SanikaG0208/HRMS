@@ -333,7 +333,6 @@ const Sidebar = () => {
               <NavItem to="/attendance"              icon={<FaFingerprint />} label="Daily Attendance" />
               <NavItem to="/apply-leave"             icon={<FaCalendarAlt />} label="Apply Leave" />
               <NavItem to="/salary-slip"             icon={<FaMoneyBill />}   label="Payroll" />
-              <NavItem to="/employee/update-requests" icon={<FaEdit />}       label="Update Requests" />
               <NavItem to="/performance/history"     icon={<FaChartLine />}   label="My Performance" />
               <NavItem to="/tickets"                 icon={<FaTicketAlt />}   label="Support Tickets" />
             </>

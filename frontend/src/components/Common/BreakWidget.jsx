@@ -13,6 +13,13 @@ const BREAK_TYPES = [
     { key: 'lunch_break', label: 'Lunch Break', minutes: 30, icon: <BreakTypeIcon type="lunch_break" /> },
 ];
 
+const updateBreakRecord = (records, updatedBreak) => {
+    if (!updatedBreak) return records;
+    const existingIndex = records.findIndex((record) => record.id === updatedBreak.id);
+    if (existingIndex === -1) return [...records, updatedBreak];
+    return records.map((record, index) => index === existingIndex ? updatedBreak : record);
+};
+
 const breakDef = (key) => BREAK_TYPES.find(t => t.key === key) || { label: 'Break', icon: <BreakTypeIcon />, minutes: 0 };
 const breakLabel = (key) => breakDef(key).label;
 const breakIcon = (key) => breakDef(key).icon;
@@ -428,21 +435,20 @@ function BreakHistoryModal({ breaks, onClose }) {
 
 // ── Individual break history (compact, shown under the button in inline-button mode) ──
 function MyBreakHistory({ breaks }) {
-    const done = (breaks || []).filter(b => b.break_end);
-    if (done.length === 0) return null;
+    if (!breaks || breaks.length === 0) return null;
     return (
-        <div style={{ marginTop: 6, display: 'flex', flexWrap: 'wrap', gap: 4, justifyContent: 'center' }}>
-            {done.map(b => (
+        <div className="employee-break-history">
+            {breaks.map(b => (
                 <span key={b.id} style={{
-                    fontSize: 10,
+                    fontSize: 11,
                     background: '#F3F4F6',
                     color: '#374151',
                     borderRadius: 10,
-                    padding: '2px 8px',
+                    padding: '5px 9px',
                     whiteSpace: 'nowrap',
                     border: '1px solid #D1D5DB',
                 }}>
-                    {breakIcon(b.break_type)} {fmtTime(b.break_start)} → {fmtTime(b.break_end)}
+                    {breakIcon(b.break_type)} {breakLabel(b.break_type)}: {fmtTime(b.break_start)} → {b.break_end ? fmtTime(b.break_end) : 'In progress'}
                     {b.break_duration_minutes ? ` · ${b.break_duration_minutes}m` : ''}
                 </span>
             ))}
@@ -552,6 +558,7 @@ export default function BreakWidget({ isClockedIn = false, isClockedOut = false,
     const [activeBreak, setActiveBreak] = useState(null);
     const [usedTypes, setUsedTypes] = useState([]);
     const [sessionBreaks, setSessionBreaks] = useState([]); // own breaks this session
+    const [personalTodayBreaks, setPersonalTodayBreaks] = useState([]);
     const [todayBreaks, setTodayBreaks] = useState([]); // team breaks today
     const [totalBreakSecondsToday, setTotalBreakSecondsToday] = useState(0);
     const [loading, setLoading] = useState(true);
@@ -563,38 +570,49 @@ export default function BreakWidget({ isClockedIn = false, isClockedOut = false,
     const isManager = ['admin', 'sub_admin', 'manager', 'hr'].includes(user?.role);
 
     const fetchStatus = useCallback(async () => {
+        if (mode === 'team-panel' && !isManager) {
+            setLoading(false);
+            return;
+        }
+
+        const statusRequest = mode === 'team-panel'
+            ? null
+            : axios.get(API_ENDPOINTS.BREAK_MY_STATUS);
+        const teamRequest = mode === 'team-panel' || (mode === 'full' && isManager)
+            ? axios.get(API_ENDPOINTS.BREAK_TEAM_TODAY)
+            : null;
+
         try {
-            if (mode === 'inline-button') {
-                const res = await axios.get(API_ENDPOINTS.BREAK_MY_STATUS);
-                setActiveBreak(res.data.active_break || null);
-                setUsedTypes(res.data.used_break_types || []);
-                setSessionBreaks(res.data.session_breaks || []);
-                setTotalBreakSecondsToday(res.data.total_break_seconds_today || 0);
-            } else if (mode === 'team-panel') {
-                if (!isManager) return;
-                const res = await axios.get(API_ENDPOINTS.BREAK_TEAM_TODAY);
-                setTodayBreaks(res.data.breaks || []);
-            } else {
-                // full mode
-                const [myRes, teamRes] = await Promise.allSettled([
-                    axios.get(API_ENDPOINTS.BREAK_MY_STATUS),
-                    isManager ? axios.get(API_ENDPOINTS.BREAK_TEAM_TODAY) : Promise.resolve({ data: { breaks: [] } }),
-                ]);
-                if (myRes.status === 'fulfilled') {
-                    setActiveBreak(myRes.value.data.active_break || null);
-                    setUsedTypes(myRes.value.data.used_break_types || []);
-                    setSessionBreaks(myRes.value.data.session_breaks || []);
-                    setTotalBreakSecondsToday(myRes.value.data.total_break_seconds_today || 0);
+            const [statusResult, teamResult] = await Promise.allSettled([
+                statusRequest,
+                teamRequest,
+            ]);
+            if (statusRequest) {
+                if (statusResult.status === 'fulfilled') {
+                    const data = statusResult.value.data;
+                    setActiveBreak(data.active_break || null);
+                    setUsedTypes(data.used_break_types || []);
+                    setSessionBreaks(data.session_breaks || []);
+                    setPersonalTodayBreaks(data.today_breaks || []);
+                    setTotalBreakSecondsToday(data.total_break_seconds_today || 0);
+                } else {
+                    console.error('Error fetching employee break status:', statusResult.reason);
                 }
-                if (teamRes.status === 'fulfilled') setTodayBreaks(teamRes.value.data.breaks || []);
             }
-        } catch { /* silent */ }
-        finally { setLoading(false); }
+            if (teamRequest) {
+                if (teamResult.status === 'fulfilled') {
+                    setTodayBreaks(teamResult.value.data.breaks || []);
+                } else {
+                    console.error('Error fetching team break status:', teamResult.reason);
+                }
+            }
+        } finally {
+            setLoading(false);
+        }
     }, [isManager, mode]);
 
-    // Fetch once on mount only — no background 30s poll. Own break status already refreshes
-    // right after every start/end action (see handleStart/handleEnd below); team-panel/full
-    // mode data refreshes on next page load rather than continuously in the background.
+    // Fetch once on mount only — no background polling. Start/end responses update personal
+    // break state directly; team-panel/full mode data refreshes on the next page load.
     useEffect(() => { fetchStatus(); }, [fetchStatus]);
 
     // Live ticker for active breaks
@@ -614,15 +632,10 @@ export default function BreakWidget({ isClockedIn = false, isClockedOut = false,
         setActing(true); setError('');
         try {
             const res = await axios.post(API_ENDPOINTS.BREAK_START, { break_type: breakType, note });
-            // The button/timer must flip to "on break" the instant this response lands — it
-            // already carries everything needed for that. fetchStatus() below additionally
-            // refreshes used_break_types/session_breaks (which this response doesn't include),
-            // but that's secondary UI (which OTHER break buttons show as "already used") and
-            // is fetched in the background rather than holding the button disabled for it —
-            // the server independently re-validates "already used" on the next start attempt
-            // regardless, so a moment of stale client-side state here can't cause a double-use.
-            setActiveBreak(res.data.break);
-            fetchStatus();
+            const startedBreak = res.data.break;
+            setActiveBreak(startedBreak);
+            setSessionBreaks((current) => updateBreakRecord(current, startedBreak));
+            setPersonalTodayBreaks((current) => updateBreakRecord(current, startedBreak));
         } catch (err) {
             setError(err.response?.data?.message || 'Failed to start break');
         } finally { setActing(false); }
@@ -633,11 +646,15 @@ export default function BreakWidget({ isClockedIn = false, isClockedOut = false,
         try {
             const res = await axios.post(API_ENDPOINTS.BREAK_END);
             setActiveBreak(null);
-            // Apply the totals this response already carries immediately; fetchStatus() below
-            // is only needed for used_break_types/session_breaks and runs in the background —
-            // see handleStart above for why that's safe.
+            const endedBreak = res.data.break;
+            setSessionBreaks((current) => updateBreakRecord(current, endedBreak));
+            setPersonalTodayBreaks((current) => updateBreakRecord(current, endedBreak));
+            if (endedBreak?.break_type) {
+                setUsedTypes((current) => current.includes(endedBreak.break_type)
+                    ? current
+                    : [...current, endedBreak.break_type]);
+            }
             if (res.data.total_break_seconds_today != null) setTotalBreakSecondsToday(res.data.total_break_seconds_today);
-            fetchStatus();
         } catch (err) {
             setError(err.response?.data?.message || 'Failed to end break');
         } finally { setActing(false); }
@@ -674,7 +691,10 @@ export default function BreakWidget({ isClockedIn = false, isClockedOut = false,
                         onEnd={handleEnd}
                     />
                 )}
-                {!unlimitedBreaks && <MyBreakHistory breaks={sessionBreaks} />}
+                <MyBreakHistory breaks={personalTodayBreaks} />
+                <div className="employee-breaks-today-count">
+                    Breaks today: <strong>{loading ? '—' : personalTodayBreaks.length}</strong>
+                </div>
             </div>
         );
     }
