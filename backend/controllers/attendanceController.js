@@ -160,6 +160,31 @@ const nowIST = () => {
     return `${y}-${mo}-${d} ${h}:${mi}:${s}`;
 };
 
+// Generate historical attendance times when an admin marks a calendar date Present.
+// The database stores these as IST wall-clock strings (timestamp without time zone).
+const generateAdminPresentTimes = (attendanceDate) => {
+    const [year, month, day] = String(attendanceDate).split('-').map(Number);
+    const dayStartMs = Date.UTC(year, month - 1, day);
+    const clockInMinute = (14 * 60) + 46 + Math.floor(Math.random() * 23); // 14:46–15:08
+    const clockInMs = dayStartMs + clockInMinute * 60 * 1000;
+    const nextMidnightMs = dayStartMs + 24 * 60 * 60 * 1000;
+    const earliestClockOutMs = Math.max(clockInMs + 9 * 60 * 60 * 1000, nextMidnightMs);
+    const latestClockOutMs = nextMidnightMs + 24 * 60 * 1000;
+    const earliestClockOutMinute = Math.ceil((earliestClockOutMs - nextMidnightMs) / 60000);
+    const latestClockOutMinute = 24;
+    const clockOutMinute = earliestClockOutMinute + Math.floor(
+        Math.random() * (latestClockOutMinute - earliestClockOutMinute + 1)
+    );
+    const clockOutMs = nextMidnightMs + clockOutMinute * 60 * 1000;
+    const formatISTWallClock = (ms) => new Date(ms).toISOString().slice(0, 19).replace('T', ' ');
+
+    return {
+        clockIn: formatISTWallClock(clockInMs),
+        clockOut: formatISTWallClock(clockOutMs),
+        totalMinutes: Math.round((clockOutMs - clockInMs) / 60000),
+    };
+};
+
 // Clock-in IST: subtract 5 minutes from the actual clock-in time
 const clockInIST = () => {
     const now = new Date();
@@ -3871,6 +3896,20 @@ exports.adminMarkAttendance = async (req, res) => {
             total_minutes:    resolved.dbStatus === 'present' ? 540 : resolved.dbStatus === 'half_day' ? 270 : 0,
             late_minutes:     0,
         };
+
+        if (status_code === 'present') {
+            const { clockIn, clockOut, totalMinutes } = generateAdminPresentTimes(attendance_date);
+            payload.clock_in = clockIn;
+            payload.clock_in_ist = clockIn;
+            payload.clock_out = clockOut;
+            payload.clock_out_ist = clockOut;
+            payload.total_hours = Math.round((totalMinutes / 60) * 100) / 100;
+            payload.total_minutes = totalMinutes;
+            payload.total_hours_display = `${Math.floor(totalMinutes / 60)}h ${totalMinutes % 60}m`;
+            payload.is_late = false;
+            payload.late_display = null;
+            payload.auto_closed = false;
+        }
 
         let upsertError;
         if (existing) {

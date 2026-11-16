@@ -4,7 +4,13 @@ import axiosInstance from '../config/axios';
 import API_ENDPOINTS from '../config/api';
 import { clearAllDashboardCaches } from '../utils/dashboardCache';
 import { clearSharedEmployeeProfiles } from '../utils/sharedEmployeeProfile';
-import { isTokenExpired, watchSessionExpiry } from '../utils/sessionExpiry';
+import {
+  IDLE_TIMEOUT_MS,
+  LAST_ACTIVITY_STORAGE_KEY,
+  isTokenExpired,
+  watchIdleSession,
+  watchSessionExpiry,
+} from '../utils/sessionExpiry';
 
 const AuthContext = createContext();
 
@@ -56,6 +62,7 @@ export const AuthProvider = ({ children }) => {
     setUser(null);
     setToken(null);
     clearStorage();
+    localStorage.removeItem(LAST_ACTIVITY_STORAGE_KEY);
     clearAllDashboardCaches();
     clearSharedEmployeeProfiles();
   }, []);
@@ -75,6 +82,54 @@ export const AuthProvider = ({ children }) => {
       watcher.stop();
       window.removeEventListener('focus', watcher.check);
       window.removeEventListener('storage', watcher.check);
+      document.removeEventListener('visibilitychange', onVisible);
+    };
+  }, [token, logout]);
+
+  // End the session after 30 minutes without user input. Share the activity timestamp
+  // across tabs so activity in one tab keeps the other tabs' idle timers in sync.
+  useEffect(() => {
+    if (!token) return undefined;
+    if (!localStorage.getItem(LAST_ACTIVITY_STORAGE_KEY)) {
+      localStorage.setItem(LAST_ACTIVITY_STORAGE_KEY, String(Date.now()));
+    }
+
+    const watcher = watchIdleSession(
+      () => localStorage.getItem(LAST_ACTIVITY_STORAGE_KEY),
+      () => {
+        logout();
+        if (window.location.pathname !== '/login') window.location.replace('/login');
+      },
+      { timeoutMs: IDLE_TIMEOUT_MS },
+    );
+    let lastActivityWrite = Number(localStorage.getItem(LAST_ACTIVITY_STORAGE_KEY));
+    const recordActivity = () => {
+      if (Date.now() - lastActivityWrite < 10_000) return;
+      lastActivityWrite = Date.now();
+      localStorage.setItem(LAST_ACTIVITY_STORAGE_KEY, String(lastActivityWrite));
+      watcher.check();
+    };
+    const onStorage = (event) => {
+      if (event.key === LAST_ACTIVITY_STORAGE_KEY) watcher.check();
+    };
+    const activityEvents = ['pointerdown', 'keydown', 'mousemove', 'scroll', 'touchstart'];
+    activityEvents.forEach((eventName) => {
+      window.addEventListener(eventName, recordActivity, { passive: true });
+    });
+    window.addEventListener('storage', onStorage);
+    window.addEventListener('focus', watcher.check);
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') watcher.check();
+    };
+    document.addEventListener('visibilitychange', onVisible);
+
+    return () => {
+      watcher.stop();
+      activityEvents.forEach((eventName) => {
+        window.removeEventListener(eventName, recordActivity);
+      });
+      window.removeEventListener('storage', onStorage);
+      window.removeEventListener('focus', watcher.check);
       document.removeEventListener('visibilitychange', onVisible);
     };
   }, [token, logout]);
@@ -191,6 +246,7 @@ export const AuthProvider = ({ children }) => {
       setUser(userData);
       setToken(accessToken);
       persistToStorage(userData, accessToken, refreshToken);
+      localStorage.setItem(LAST_ACTIVITY_STORAGE_KEY, String(Date.now()));
 
       return { success: true, user: userData };
     } catch (error) {
