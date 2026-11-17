@@ -1087,7 +1087,6 @@ const ApplyLeave = () => {
                   <ul className="al-policy-list">
                     <li>Earned by working on holidays (8+ hours)</li>
                     <li>1 holiday work = 1 Comp-Off day</li>
-                    <li>Can be used during probation period</li>
                     <li>Valid for 90 days from earning</li>
                   </ul>
                 </Col>
@@ -1134,7 +1133,6 @@ const ApplyLeave = () => {
               <ul className="ps-3 mt-1">
                 <li>Earned by working on holidays (8+ hours)</li>
                 <li>1 holiday work = 1 Comp-Off day</li>
-                <li>Can be used during probation period</li>
                 <li>Valid for 90 days from earning</li>
               </ul>
             </li>
