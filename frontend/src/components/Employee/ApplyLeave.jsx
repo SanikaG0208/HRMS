@@ -1098,7 +1098,6 @@ const ApplyLeave = () => {
                     During Probation <span className="text-muted fw-normal">(First {PAID_LEAVE_ELIGIBILITY_MONTHS} months)</span>
                   </div>
                   <ul className="al-policy-list">
-                    <li>Comp-Off and Unpaid Leave available</li>
                     <li>Regular leaves accrue but cannot be used</li>
                   </ul>
                 </Col>
@@ -1139,7 +1138,6 @@ const ApplyLeave = () => {
             <li className="mt-2">
               <strong>During Probation (First {PAID_LEAVE_ELIGIBILITY_MONTHS} months):</strong>
               <ul className="ps-3 mt-1">
-                <li>Comp-Off and Unpaid Leave available</li>
                 <li>Regular leaves accrue but cannot be used</li>
               </ul>
             </li>
