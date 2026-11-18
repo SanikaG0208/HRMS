@@ -163,14 +163,15 @@ const AttendanceCalendar = ({ employee, onAttendanceSaved, initialMonth, initial
     if (!st) return;
     setSaving(s => ({ ...s, [dateStr]: true }));
     try {
-      if (code === 'paid_leave' || code === 'comp_off') {
-        // Admin mark endpoint handles balance validation + deduction atomically
+      if (code === 'present' || code === 'paid_leave' || code === 'comp_off') {
+        // Admin mark endpoint handles synthetic clock times for Present and
+        // balance validation + deduction for paid leave / comp off.
         await axios.post(API_ENDPOINTS.ATTENDANCE_ADMIN_MARK, {
           employee_id: empId,
           attendance_date: dateStr,
           status_code: code,
         });
-        await fetchBalances(); // Refresh displayed balance after deduction
+        if (code === 'paid_leave' || code === 'comp_off') await fetchBalances(); // Refresh leave balances after deduction
       } else {
         const codeMap = { present: 'P', absent: 'A', half_day: 'HD', week_off: 'WO', holiday: 'H', leave: 'L' };
         await axios.post(API_ENDPOINTS.ATTENDANCE_IMPORT, {
@@ -185,6 +186,7 @@ const AttendanceCalendar = ({ employee, onAttendanceSaved, initialMonth, initial
       if (onAttendanceSaved) onAttendanceSaved(selMonth + 1, selYear);
     } catch (err) {
       const msg = err.response?.data?.message || `Failed to save ${dateStr}`;
+      setUnsaved(u => { const n = { ...u }; delete n[dateStr]; return n; });
       showNotification(msg, 'danger');
     } finally {
       setSaving(s => { const n = { ...s }; delete n[dateStr]; return n; });
@@ -197,9 +199,9 @@ const AttendanceCalendar = ({ employee, onAttendanceSaved, initialMonth, initial
     setSaveAllLoading(true);
     const codeMap = { present: 'P', absent: 'A', half_day: 'HD', week_off: 'WO', holiday: 'H', leave: 'L' };
     const bulkDates = {};
-    const balanceDays = []; // PL/CO — sequential, balance deducted per call
+    const adminMarkDays = []; // Present and PL/CO use the admin mark endpoint.
     Object.entries(unsaved).forEach(([ds, code]) => {
-      if (code === 'paid_leave' || code === 'comp_off') balanceDays.push([ds, code]);
+      if (code === 'present' || code === 'paid_leave' || code === 'comp_off') adminMarkDays.push([ds, code]);
       else bulkDates[ds] = codeMap[code] || 'A';
     });
     try {
@@ -209,16 +211,16 @@ const AttendanceCalendar = ({ employee, onAttendanceSaved, initialMonth, initial
           records: [{ employee_id: empId, dates: bulkDates }]
         });
       }
-      for (const [ds, code] of balanceDays) {
+      for (const [ds, code] of adminMarkDays) {
         await axios.post(API_ENDPOINTS.ATTENDANCE_ADMIN_MARK, {
           employee_id: empId, attendance_date: ds, status_code: code,
         });
       }
       setAttendanceMap(m => ({ ...m, ...unsaved }));
       setUnsaved({});
-      const total = Object.keys(bulkDates).length + balanceDays.length;
+      const total = Object.keys(bulkDates).length + adminMarkDays.length;
       showNotification(`✅ ${total} day(s) saved successfully`, 'success');
-      if (balanceDays.length > 0) await fetchBalances();
+      if (adminMarkDays.some(([, code]) => code === 'paid_leave' || code === 'comp_off')) await fetchBalances();
       if (onAttendanceSaved) onAttendanceSaved(selMonth + 1, selYear);
     } catch (err) {
       const msg = err.response?.data?.message || 'Failed to save changes';

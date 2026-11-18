@@ -2,7 +2,13 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
-import { getTokenExpiryMs, isTokenExpired, watchSessionExpiry } from './sessionExpiry.js';
+import {
+    getTokenExpiryMs,
+    IDLE_TIMEOUT_MS,
+    isTokenExpired,
+    watchIdleSession,
+    watchSessionExpiry,
+} from './sessionExpiry.js';
 const tokenFor = exp => 'header.' + Buffer.from(JSON.stringify({ exp })).toString('base64url') + '.signature';
 
 test('session remains valid until the exact nine-hour boundary', () => {
@@ -37,6 +43,38 @@ test('cleanup stops callbacks and a replaced token uses its own expiry', () => {
     token = tokenFor(10); now = 3000; callback();
     assert.equal(logouts, 0); assert.equal(delay, 7000);
     watcher.stop(); now = 20000; callback();
+    assert.equal(logouts, 0);
+});
+test('idle session logs out exactly at the 30-minute inactivity boundary', () => {
+    let now = 1000, lastActivity = now, callback, delay, logouts = 0;
+    const watcher = watchIdleSession(() => lastActivity, () => logouts++, {
+        timeoutMs: IDLE_TIMEOUT_MS,
+        now: () => now,
+        setTimer: (fn, ms) => { callback = fn; delay = ms; return 1; },
+        clearTimer() {},
+    });
+    assert.equal(delay, IDLE_TIMEOUT_MS);
+    now += IDLE_TIMEOUT_MS - 1;
+    watcher.check();
+    assert.equal(logouts, 0);
+    now += 1;
+    callback();
+    assert.equal(logouts, 1);
+});
+test('recent activity resets the idle logout deadline', () => {
+    let now = 1000, lastActivity = now, callback, delay, logouts = 0;
+    const watcher = watchIdleSession(() => lastActivity, () => logouts++, {
+        timeoutMs: IDLE_TIMEOUT_MS,
+        now: () => now,
+        setTimer: (fn, ms) => { callback = fn; delay = ms; return 1; },
+        clearTimer() {},
+    });
+    now += 10 * 60 * 1000;
+    lastActivity = now;
+    watcher.check();
+    assert.equal(delay, IDLE_TIMEOUT_MS);
+    now += IDLE_TIMEOUT_MS - 1;
+    callback();
     assert.equal(logouts, 0);
 });
 function clientHarness(token) {

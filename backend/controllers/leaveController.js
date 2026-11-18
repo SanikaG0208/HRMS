@@ -101,6 +101,7 @@ const getManualPaidAdjustmentTotalsBulk = async (leave_year) => {
 };
 
 // ==================== GET LEAVE BALANCE ====================
+// ==================== GET LEAVE BALANCE ====================
 exports.getLeaveBalance = async (req, res) => {
     try {
         const { employee_id } = req.params;
@@ -121,11 +122,16 @@ exports.getLeaveBalance = async (req, res) => {
         const CompOffService = require('../services/compOffService');
         const actualCompOffBalance = await CompOffService.getValidCompOffCount(employee_id);
 
-        // Sync employees table if mismatch
-        if (actualCompOffBalance !== (employee.comp_off_balance || 0)) {
+        // Sync employees table only on a real mismatch.
+        // Coerce both sides to Number — Supabase can return `numeric` columns as
+        // strings depending on schema/driver, and "3" !== 3 would otherwise fire
+        // this UPDATE on every single read even when nothing changed.
+        const storedCompOff = Number(employee.comp_off_balance ?? 0);
+        const actualCompOff = Number(actualCompOffBalance);
+        if (actualCompOff !== storedCompOff) {
             await supabase
                 .from('employees')
-                .update({ comp_off_balance: actualCompOffBalance })
+                .update({ comp_off_balance: actualCompOff })
                 .eq('employee_id', employee_id);
         }
 
@@ -202,19 +208,50 @@ exports.getLeaveBalance = async (req, res) => {
             available = Math.max(0, currentYearAccrual + manualAdjustment - used - pending);
         }
 
-        await supabase
+        // Read-compare-write: only touch leave_balance when the freshly-computed
+        // figures actually differ from what's stored. The unique index on
+        // (employee_id, leave_year) makes this a single indexed SELECT on the
+        // hot path — cheaper than the unconditional UPSERT it replaces, and it
+        // stops bumping last_updated on every page load.
+        const { data: storedBalance, error: storedBalanceErr } = await supabase
             .from('leave_balance')
-            .upsert({
-                employee_id,
-                leave_year: currentYear,
-                total_accrued: currentYearAccrual,
-                total_used: used,
-                total_pending: pending,
-                current_balance: available,
-                last_updated: today.toISOString()
-            }, {
-                onConflict: 'employee_id,leave_year'
-            });
+            .select('total_accrued, total_used, total_pending, current_balance')
+            .eq('employee_id', employee_id)
+            .eq('leave_year', currentYear)
+            .maybeSingle();
+        if (storedBalanceErr) throw storedBalanceErr;
+
+        const EPS = 1e-6;
+        const numOrNull = (v) => (v === null || v === undefined ? null : Number(v));
+        const balancesDiffer = (a, b) => {
+            const na = numOrNull(a);
+            const nb = numOrNull(b);
+            if (na === null || nb === null) return na !== nb;   // null vs value = differs
+            return Math.abs(na - nb) > EPS;
+        };
+
+        const needsBalanceWrite = !storedBalance
+            || balancesDiffer(storedBalance.total_accrued, currentYearAccrual)
+            || balancesDiffer(storedBalance.total_used, used)
+            || balancesDiffer(storedBalance.total_pending, pending)
+            || balancesDiffer(storedBalance.current_balance, available);
+
+        if (needsBalanceWrite) {
+            await supabase
+                .from('leave_balance')
+                .upsert({
+                    employee_id,
+                    leave_year: currentYear,
+                    total_accrued: currentYearAccrual,
+                    total_used: used,
+                    total_pending: pending,
+                    current_balance: available,
+                    last_updated: today.toISOString()
+                }, {
+                    onConflict: 'employee_id,leave_year'
+                });
+        }
+        // else: nothing to persist — leave last_updated as-is.
 
         res.json({
             success: true,
@@ -431,7 +468,7 @@ exports.applyLeave = async (req, res) => {
                     message: 'Your date of birth is not on record. Please contact admin to update your profile.'
                 });
             }
-            const dob     = new Date(employee.dob);
+            const dob = new Date(employee.dob);
             const leaveStart = new Date(start_date);
             if (dob.getMonth() !== leaveStart.getMonth() || dob.getDate() !== leaveStart.getDate()) {
                 const dobFormatted = dob.toLocaleString('en-IN', { month: 'long', day: 'numeric' });
@@ -499,7 +536,7 @@ exports.applyLeave = async (req, res) => {
         const nowUTC = new Date();
         const istMs = nowUTC.getTime() + IST_OFFSET_MS;
         const istDate = new Date(istMs);
-        const createdAtIST = `${istDate.getUTCFullYear()}-${String(istDate.getUTCMonth()+1).padStart(2,'0')}-${String(istDate.getUTCDate()).padStart(2,'0')} ${String(istDate.getUTCHours()).padStart(2,'0')}:${String(istDate.getUTCMinutes()).padStart(2,'0')}:${String(istDate.getUTCSeconds()).padStart(2,'0')}`;
+        const createdAtIST = `${istDate.getUTCFullYear()}-${String(istDate.getUTCMonth() + 1).padStart(2, '0')}-${String(istDate.getUTCDate()).padStart(2, '0')} ${String(istDate.getUTCHours()).padStart(2, '0')}:${String(istDate.getUTCMinutes()).padStart(2, '0')}:${String(istDate.getUTCSeconds()).padStart(2, '0')}`;
 
         // Birthday Leave is a company-provided benefit, not subject to manager judgement —
         // it's auto-approved the moment it's submitted instead of sitting as pending.
@@ -593,7 +630,7 @@ exports.getLeaves = async (req, res) => {
     try {
         const authenticatedUserId = req.user?.employeeId;
         const userRole = req.user?.role;
-        
+
         console.log('🔍 getLeaves called with:', {
             authenticatedUserId,
             userRole,
@@ -680,7 +717,7 @@ exports.getLeaves = async (req, res) => {
             console.error('❌ Database error in getLeaves:', error);
             throw error;
         }
-        
+
         console.log('✅ Leaves fetched successfully:', leaves?.length || 0, 'records');
 
         const formatted = (leaves || []).map(l => ({
@@ -692,16 +729,16 @@ exports.getLeaves = async (req, res) => {
             profile_image: l.employees?.profile_image || null,
             employees: undefined
         }));
-        
+
         console.log('✅ Returning formatted leaves:', formatted.length, 'records');
         console.log('📊 Sample leave data:', formatted.slice(0, 2));
 
         res.json(formatted);
     } catch (error) {
         console.error('❌ Error in getLeaves:', error);
-        res.status(500).json({ 
-            success: false, 
-            message: 'Error fetching leaves', 
+        res.status(500).json({
+            success: false,
+            message: 'Error fetching leaves',
             error: error.message,
             leaves: [] // Return empty array on error
         });
@@ -766,7 +803,7 @@ exports.updateLeaveStatus = async (req, res) => {
         }
         const IST_OFFSET_MS = 5.5 * 60 * 60 * 1000;
         const nowIST = new Date(Date.now() + IST_OFFSET_MS);
-        const updatedAtIST = `${nowIST.getUTCFullYear()}-${String(nowIST.getUTCMonth()+1).padStart(2,'0')}-${String(nowIST.getUTCDate()).padStart(2,'0')} ${String(nowIST.getUTCHours()).padStart(2,'0')}:${String(nowIST.getUTCMinutes()).padStart(2,'0')}:${String(nowIST.getUTCSeconds()).padStart(2,'0')}`;
+        const updatedAtIST = `${nowIST.getUTCFullYear()}-${String(nowIST.getUTCMonth() + 1).padStart(2, '0')}-${String(nowIST.getUTCDate()).padStart(2, '0')} ${String(nowIST.getUTCHours()).padStart(2, '0')}:${String(nowIST.getUTCMinutes()).padStart(2, '0')}:${String(nowIST.getUTCSeconds()).padStart(2, '0')}`;
 
         const updateData = {
             status,
@@ -1034,27 +1071,27 @@ exports.getOnLeaveToday = async (req, res) => {
 exports.manualAccrual = async (req, res) => {
     try {
         const { employee_id } = req.params;
-        
+
         const { data: employee, error: empError } = await supabase
             .from('employees')
             .select('joining_date')
             .eq('employee_id', employee_id)
             .single();
-            
+
         if (empError) throw empError;
-        
+
         const joiningDate = new Date(employee.joining_date);
         const today = new Date();
         const currentYearAccrual = calculateCurrentYearAccruedLeaves(joiningDate, today);
         const currentYear = today.getFullYear();
-        
+
         const { data: existingBalance } = await supabase
             .from('leave_balance')
             .select('*')
             .eq('employee_id', employee_id)
             .eq('leave_year', currentYear)
             .single();
-            
+
         if (existingBalance) {
             await supabase
                 .from('leave_balance')
@@ -1078,14 +1115,14 @@ exports.manualAccrual = async (req, res) => {
                     last_updated: today.toISOString()
                 }]);
         }
-        
+
         res.json({
             success: true,
             message: `Manual accrual updated: ${currentYearAccrual} days`,
             total_accrued: currentYearAccrual,
             completed_months: getCompletedMonthsInCurrentYear(joiningDate, today)
         });
-        
+
     } catch (error) {
         console.error('Error in manual accrual:', error);
         res.status(500).json({
@@ -1100,34 +1137,34 @@ exports.manualAccrual = async (req, res) => {
 exports.yearlyReset = async (req, res) => {
     try {
         const nextYear = new Date().getFullYear() + 1;
-        
+
         const { data: employees } = await supabase
             .from('employees')
             .select('employee_id, joining_date');
-            
+
         if (employees) {
             for (const emp of employees) {
                 const joiningDate = new Date(emp.joining_date);
                 const today = new Date(nextYear, 0, 1);
-                
+
                 let accruedMonths = 0;
                 const joinYear = joiningDate.getFullYear();
-                
+
                 if (joinYear <= nextYear) {
                     for (let month = 0; month < 12; month++) {
                         accruedMonths++;
                     }
                 }
-                
+
                 const accrualAmount = accruedMonths * MONTHLY_ACCRUAL_RATE;
-                
+
                 const { data: existing } = await supabase
                     .from('leave_balance')
                     .select('id')
                     .eq('employee_id', emp.employee_id)
                     .eq('leave_year', nextYear)
                     .single();
-                    
+
                 if (!existing) {
                     await supabase
                         .from('leave_balance')
@@ -1143,13 +1180,13 @@ exports.yearlyReset = async (req, res) => {
                 }
             }
         }
-        
+
         res.json({
             success: true,
             message: `Yearly reset completed for ${nextYear}`,
             year: nextYear
         });
-        
+
     } catch (error) {
         console.error('Error in yearly reset:', error);
         res.status(500).json({
