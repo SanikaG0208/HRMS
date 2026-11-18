@@ -43,7 +43,7 @@ const companyLogo = '/images/b2bindemand_logo.jfif';
 
 const COMPANY_INFO = {
   b2b: { name: 'B2BinDemand', address: '8th Floor SkyVista, 805, Mhada Colony, Viman Nagar, Pune, Maharashtra 411014', accent: '#1e3a5f' },
-  pc:  { name: 'PropCulture', address: 'Pune, Maharashtra', accent: '#0d7b6f' },
+  pc: { name: 'PropCulture', address: 'Pune, Maharashtra', accent: '#0d7b6f' },
 };
 
 const SalarySlip = ({ embedded = false }) => {
@@ -269,7 +269,7 @@ const SalarySlip = ({ embedded = false }) => {
     if (!joiningInfo) return true;
 
     const requestedDate = new Date(year, month - 1, 1);
-    const joiningDate   = new Date(joiningInfo.year, joiningInfo.month - 1, 1);
+    const joiningDate = new Date(joiningInfo.year, joiningInfo.month - 1, 1);
     if (requestedDate < joiningDate) return false;
 
     const today = new Date();
@@ -419,14 +419,22 @@ const SalarySlip = ({ embedded = false }) => {
         text: 'Generating PDF...'
       });
 
-      const { basicSalary, deduction, netSalary, overtimeAmount, overtimeHours, absentDays, unpaidLeaveDays, unpaidDeduction, perDaySalary } = getSlipAmounts(slip);
+      const { basicSalary, grossEarnings, deduction, netSalary, overtimeAmount, overtimeHours, absentDays, unpaidLeaveDays, unpaidDeduction, perDaySalary } = getSlipAmounts(slip);
       const totalAbsentDeduction = unpaidDeduction;
       const bd = getDeductionBreakdown(slip);
       const pfAmt = bd.pf;
       const ptAmt = bd.pt;
       const professionalTaxAmt = bd.professionalTax || 0;
       const dtAmt = bd.dt !== null ? bd.dt : deduction;
-      const totalDeductionsForPrint = pfAmt + ptAmt + professionalTaxAmt + dtAmt + totalAbsentDeduction;
+      const customDeduction = Number(slip.custom_deduction) || 0;
+
+      const totalDeductionsForPrint =
+        pfAmt +
+        ptAmt +
+        professionalTaxAmt +
+        dtAmt +
+        totalAbsentDeduction +
+        customDeduction;
 
       let logoBase64 = '';
       try {
@@ -451,9 +459,9 @@ const SalarySlip = ({ embedded = false }) => {
       pdfContentDiv.innerHTML = `
         <div style="text-align: center; margin-bottom: 20px;">
           ${isPC
-            ? `<div style="font-size:26px;font-weight:900;color:${co.accent};letter-spacing:1px;margin-bottom:8px;">${co.name}</div>`
-            : logoBase64 ? `<img src="data:image/png;base64,${logoBase64}" style="height: 60px; width: auto; margin-bottom: 10px; object-fit: contain;" />` : `<div style="font-size:22px;font-weight:900;color:${co.accent};margin-bottom:8px;">${co.name}</div>`
-          }
+          ? `<div style="font-size:26px;font-weight:900;color:${co.accent};letter-spacing:1px;margin-bottom:8px;">${co.name}</div>`
+          : logoBase64 ? `<img src="data:image/png;base64,${logoBase64}" style="height: 60px; width: auto; margin-bottom: 10px; object-fit: contain;" />` : `<div style="font-size:22px;font-weight:900;color:${co.accent};margin-bottom:8px;">${co.name}</div>`
+        }
           <p style="font-size: 12px; color: #333; margin: 0;">${co.address}</p>
         </div>
 
@@ -480,13 +488,13 @@ const SalarySlip = ({ embedded = false }) => {
           </thead>
           <tbody>
             <tr>
-              <td style="padding: 4px 4px;">Basic Salary</td>
+              <td style="padding: 4px 4px;">Earned Salary Before Loss of Pay</td>
               <td style="text-align: right; padding: 4px 4px;">${formatCurrency(basicSalary)}</td>
             </tr>
             <!-- Overtime row - ALWAYS SHOW -->
             <tr style="${overtimeAmount > 0 ? 'background-color: #d4edda;' : ''}">
               <td style="padding: 4px 4px;">
-                <span style="${overtimeAmount > 0 ? 'color: #28a745;' : ''}">Overtime (${overtimeHours || 0} hrs @ ₹150/hr)</span>
+                <span style="${overtimeAmount > 0 ? 'color: #28a745;' : ''}">Overtime (${overtimeHours || 0} hrs @ ₹${OVERTIME_RATE}/hr)</span>
               </td>
               <td style="text-align: right; padding: 4px 4px; ${overtimeAmount > 0 ? 'color: #28a745; font-weight: bold;' : ''}">
                 ${overtimeAmount > 0 ? '+ ' : ''}${formatCurrency(overtimeAmount)}
@@ -494,7 +502,7 @@ const SalarySlip = ({ embedded = false }) => {
             </tr>
             <tr style="background-color: #f2f2f2;">
               <td style="font-weight: bold; padding: 4px 4px;">Gross Earnings</td>
-              <td style="text-align: right; font-weight: bold; padding: 4px 4px;">${formatCurrency(basicSalary + overtimeAmount)}</td>
+              <td style="text-align: right; font-weight: bold; padding: 4px 4px;">${formatCurrency(grossEarnings)}</td>
             </tr>
           </tbody>
         </table>
@@ -520,6 +528,13 @@ const SalarySlip = ({ embedded = false }) => {
               <td style="font-weight: bold; padding: 4px 4px;">DT (Fixed Deduction)</td>
               <td style="text-align: right; font-weight: bold; color: #d9534f; padding: 4px 4px;">${formatCurrency(dtAmt)}</td>
             </tr>` : ''}
+            ${customDeduction > 0 ? `
+<tr style="background-color: #ffe0e0;">
+  <td style="padding: 4px 4px;">Other Deduction</td>
+  <td style="text-align: right; font-weight: bold; color: #d9534f; padding: 4px 4px;">
+    ${formatCurrency(customDeduction)}
+  </td>
+</tr>` : ''}
             <tr style="background-color: #f2f2f2;">
               <td style="font-weight: bold; padding: 4px 4px;">Total Deductions</td>
               <td style="text-align: right; font-weight: bold; color: #d9534f; padding: 4px 4px;">${formatCurrency(totalDeductionsForPrint)}</td>
@@ -531,23 +546,31 @@ const SalarySlip = ({ embedded = false }) => {
           </tbody>
         </table>
 
-        <div style="background-color: #f8f9fa; padding: 10px; margin-bottom: 20px; border-radius: 5px; font-size: 13px;">
-          <strong>Calculation:</strong> Basic Salary (₹${formatCurrency(basicSalary)})
-          + Overtime (₹${formatCurrency(overtimeAmount)})
-          ${totalAbsentDeduction > 0 ? ` - Absent Deduction (₹${formatCurrency(totalAbsentDeduction)})` : ''}
-          ${dtAmt > 0 ? `- DT Deduction (₹${formatCurrency(dtAmt)})` : pfAmt > 0 ? `- PF+PT+Prof.Tax (₹${formatCurrency(pfAmt + ptAmt + professionalTaxAmt)})` : ''} = Net Salary (₹${formatCurrency(netSalary)})
-        </div>
+       <div style="background-color: #f8f9fa; padding: 10px; margin-bottom: 20px; border-radius: 5px; font-size: 13px;">
+  <strong>Calculation:</strong>
+  <div style="margin-top: 5px;">
+    Gross Earnings: ₹${formatCurrency(grossEarnings)}
+  </div>
+  <div>
+    Total Deductions: ₹${formatCurrency(totalDeductionsForPrint)}
+  </div>
+  <div style="font-weight: bold; margin-top: 5px;">
+    Net Salary: ₹${formatCurrency(netSalary)}
+  </div>
+</div>
 
         <div style="font-size: 14px; margin-bottom: 30px;">
           <strong>Amount in Words:</strong> Rupees ${numberToWords(Math.round(netSalary))} Only
         </div>
 
         <div style="font-size: 14px; margin-bottom: 20px;">
-          <strong>Gross Salary (CTC):</strong> <span style="color: #0d6efd; font-weight: bold;">₹${formatCurrency(employee?.gross_salary || employee?.salary)}</span>
+          <strong>Monthly Gross Salary (reference):</strong><span style="color: #0d6efd; font-weight: bold;">₹${formatCurrency(Number(slip.monthly_salary ?? employee?.gross_salary ?? employee?.salary ?? 0))}</span>
         </div>
 
         <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 20px; font-size: 14px;">
-          <div>For B2BinDemand</div>
+         <div style="text-align: center; margin-top: 30px; font-size: 12px;">
+  For ${co.name}
+</div>
           <div>Authorized Signatory</div>
         </div>
 
@@ -556,18 +579,26 @@ const SalarySlip = ({ embedded = false }) => {
         </div>
       `;
 
+
       document.body.appendChild(pdfContentDiv);
 
-      const canvas = await html2canvas(pdfContentDiv, {
-        scale: 2,
-        backgroundColor: '#ffffff',
-        logging: false,
-        allowTaint: true,
-        useCORS: true,
-        windowWidth: 800
-      });
+      let canvas;
 
-      document.body.removeChild(pdfContentDiv);
+      try {
+        canvas = await html2canvas(pdfContentDiv, {
+          scale: 2,
+          backgroundColor: '#ffffff',
+          logging: false,
+          allowTaint: true,
+          useCORS: true,
+          windowWidth: 800
+        });
+      } finally {
+        if (document.body.contains(pdfContentDiv)) {
+          document.body.removeChild(pdfContentDiv);
+        }
+      }
+
 
       const imgData = canvas.toDataURL('image/png');
       const pdf = new jsPDF({
@@ -613,7 +644,7 @@ const SalarySlip = ({ embedded = false }) => {
 
   const getDeductionBreakdown = (slip) => {
     const m = parseInt(slip?.month || 0);
-    const y = parseInt(slip?.year  || 0);
+    const y = parseInt(slip?.year || 0);
     const isPFApplicable = y > 2026 || (y === 2026 && m >= 5);
     if (isPFApplicable) {
       // PT no longer auto-defaults to ₹200 — admin must explicitly set it; unset = 0.
@@ -628,26 +659,81 @@ const SalarySlip = ({ embedded = false }) => {
     return { pf: 0, pt: 0, professionalTax: 0, dt: null };
   };
 
+
   const getSlipAmounts = (slip) => {
-    if (!slip) return { monthlySalary: 0, basicSalary: 0, deduction: 0, netSalary: 0, overtimeAmount: 0, overtimeHours: 0, unpaidLeaveDays: 0, paidLeaveDays: 0, absentDays: 0, presentDays: 0, unpaidDeduction: 0, perDaySalary: 0, totalWorkingDays: 0, holidayDays: 0 };
+    if (!slip) {
+      return {
+        monthlySalary: 0,
+        basicSalary: 0,
+        grossEarnings: 0,
+        deduction: 0,
+        netSalary: 0,
+        overtimeAmount: 0,
+        overtimeHours: 0,
+        unpaidLeaveDays: 0,
+        paidLeaveDays: 0,
+        absentDays: 0,
+        presentDays: 0,
+        unpaidDeduction: 0,
+        perDaySalary: 0,
+        totalWorkingDays: 0,
+        holidayDays: 0
+      };
+    }
 
-    const monthlySalary    = Number(slip.monthly_salary) || Number(employee?.gross_salary || employee?.salary) || 0;
-    const basicSalary      = slip.basic_salary != null ? Number(slip.basic_salary) : monthlySalary;
-    const deduction        = slip.basic_salary != null && Number(slip.basic_salary) === 0 ? 0 : (Number(slip.dt) || 200);
-    const netSalary        = slip.net_salary   != null ? Number(slip.net_salary)   : Math.max(0, basicSalary - deduction);
-    const overtimeAmount   = Number(slip.overtime_amount)   || 0;
-    const overtimeHours    = Number(slip.overtime_hours)    || 0;
-    const unpaidLeaveDays  = Number(slip.unpaid_leave_days) || 0;
-    const paidLeaveDays    = Number(slip.paid_leave_days)   || 0;
-    const absentDays       = Number(slip.absent_days)       || 0;
-    const presentDays      = Number(slip.present_days)      || 0;
-    const unpaidDeduction  = Number(slip.unpaid_deduction)  || 0;
-    const perDaySalary     = Number(slip.per_day_salary)    || 0;
-    const totalWorkingDays = Number(slip.total_working_days)|| 22;
-    // holidayDays = totalWorkingDays - presentDays - paidLeaveDays - absentDays - unpaidLeaveDays
-    const holidayDays      = Math.max(0, totalWorkingDays - presentDays - paidLeaveDays - absentDays - unpaidLeaveDays);
+    const monthlySalary =
+      Number(slip.monthly_salary) ||
+      Number(employee?.gross_salary || employee?.salary) ||
+      0;
 
-    return { monthlySalary, basicSalary, deduction, netSalary, overtimeAmount, overtimeHours, unpaidLeaveDays, paidLeaveDays, absentDays, presentDays, unpaidDeduction, perDaySalary, totalWorkingDays, holidayDays };
+    const basicSalary =
+      slip.basic_salary != null
+        ? Number(slip.basic_salary)
+        : monthlySalary;
+
+    const overtimeAmount = Number(slip.overtime_amount) || 0;
+    const overtimeHours = Number(slip.overtime_hours) || 0;
+
+    const unpaidDeduction = Number(slip.unpaid_deduction) || 0;
+
+    const unpaidLeaveDays = Number(slip.unpaid_leave_days) || 0;
+    const paidLeaveDays = Number(slip.paid_leave_days) || 0;
+    const absentDays = Number(slip.absent_days) || 0;
+    const presentDays = Number(slip.present_days) || 0;
+
+    const perDaySalary = Number(slip.per_day_salary) || 0;
+    const totalWorkingDays = Number(slip.total_working_days) || 22;
+
+    const holidayDays = Math.max(
+      0,
+      totalWorkingDays -
+      presentDays -
+      paidLeaveDays -
+      absentDays -
+      unpaidLeaveDays
+    );
+
+    // Keep the saved payroll result as the source of truth.
+    const deduction = Number(slip.dt) || 0;
+    const netSalary = Number(slip.net_salary) || 0;
+
+    return {
+      monthlySalary,
+      basicSalary,
+      grossEarnings: basicSalary + overtimeAmount,
+      deduction,
+      netSalary,
+      overtimeAmount,
+      overtimeHours,
+      unpaidLeaveDays,
+      paidLeaveDays,
+      absentDays,
+      presentDays,
+      unpaidDeduction,
+      perDaySalary,
+      totalWorkingDays,
+      holidayDays
+    };
   };
 
   const getMonthName = (monthNumber) => {
@@ -844,9 +930,9 @@ const SalarySlip = ({ embedded = false }) => {
                         {(() => {
                           const m = parseInt(selectedMonth), y = parseInt(selectedYear);
                           const today = new Date();
-                    const allowFrom = new Date(y, m - 1, 27);
+                          const allowFrom = new Date(y, m - 1, 27);
                           if (today < allowFrom) {
-                            return `Salary slip for ${new Date(y, m-1).toLocaleString('en-IN',{month:'long'})} ${y} will be available from 27 ${new Date(y, m-1).toLocaleString('en-IN',{month:'long'})} ${y} (after cycle end).`;
+                            return `Salary slip for ${new Date(y, m - 1).toLocaleString('en-IN', { month: 'long' })} ${y} will be available from 27 ${new Date(y, m - 1).toLocaleString('en-IN', { month: 'long' })} ${y} (after cycle end).`;
                           }
                           return 'Cannot generate: Before joining date or future month.';
                         })()}
@@ -935,15 +1021,60 @@ const SalarySlip = ({ embedded = false }) => {
               {/* Table with Vertical Scroll */}
               <div className="table-responsive" style={{ maxHeight: '480px', overflowY: 'auto' }}>
                 <PaginatedTable searchable as={Table} hover className="salary-statements-table mb-0">
-                  <thead><tr><th>Pay period</th><th className="text-end">Basic salary</th><th className="text-end">Deductions</th><th className="text-end">Net pay</th><th className="text-end">Statement</th></tr></thead>
+                  <thead>
+                    <tr>
+                      <th>Pay period</th>
+                      <th className="text-end">Gross earnings</th>
+                      <th className="text-end">Total deductions</th>
+                      <th className="text-end">Net salary</th>
+                      <th className="text-end">Statement</th>
+                    </tr>
+                  </thead>
                   <tbody>
                     {displaySlips.length ? displaySlips.map(slip => {
-                      const { basicSalary, deduction, netSalary, overtimeAmount, overtimeHours } = getSlipAmounts(slip);
+                      const {
+                        monthlySalary,
+                        basicSalary,
+                        grossEarnings,
+                        deduction,
+                        netSalary,
+                        overtimeAmount,
+                        overtimeHours,
+                        unpaidDeduction
+                      } = getSlipAmounts(slip);
+
+                      const breakdown = getDeductionBreakdown(slip);
+
+                      const totalDeductions =
+                        breakdown.pf +
+                        breakdown.pt +
+                        breakdown.professionalTax +
+                        (breakdown.dt !== null ? breakdown.dt : deduction) +
+                        unpaidDeduction +
+                        (Number(slip.custom_deduction) || 0);
                       return <tr key={slip.id}>
                         <td><strong>{getMonthName(slip.month)} {slip.year}</strong><small className="salary-row-note">Monthly salary statement</small></td>
-                        <td className="text-end">₹{formatCurrency(basicSalary)}{overtimeHours > 0 && <small className="salary-row-note">OT: {overtimeHours}h · ₹{formatCurrency(overtimeAmount)}</small>}</td>
-                        <td className="text-end">₹{formatCurrency(deduction)}</td>
-                        <td className="text-end"><strong className="salary-net-pay">₹{formatCurrency(netSalary)}</strong></td>
+                        <td className="text-end">
+                          ₹{formatCurrency(grossEarnings)}
+                          <small className="salary-row-note">
+                            Monthly gross salary: ₹{formatCurrency(monthlySalary)}
+                          </small>
+                          {overtimeHours > 0 && (
+                            <small className="salary-row-note">
+                              OT: {overtimeHours}h · ₹{formatCurrency(overtimeAmount)}
+                            </small>
+                          )}
+                        </td>
+
+                        <td className="text-end">
+                          ₹{formatCurrency(totalDeductions)}
+                        </td>
+
+                        <td className="text-end">
+                          <strong className="salary-net-pay">
+                            ₹{formatCurrency(netSalary)}
+                          </strong>
+                        </td>
                         <td><div className="salary-statement-actions">
                           <Button variant="outline-primary" size="sm" onClick={() => handleViewSlip(slip)} aria-label={`View salary slip for ${getMonthName(slip.month)} ${slip.year}`}><FaEye size={12} /> View</Button>
                           <Button variant="outline-secondary" size="sm" onClick={() => handleDownloadPDF(slip)} aria-label={`Download salary slip for ${getMonthName(slip.month)} ${slip.year}`}><FaDownload size={12} /> PDF</Button>
@@ -1100,32 +1231,22 @@ const SalarySlip = ({ embedded = false }) => {
                   </thead>
                   <tbody>
                     <tr>
-                      <td className="py-1 ps-2">Monthly Gross Salary ({selectedSlipAmounts.totalWorkingDays} working days in cycle)</td>
+                      <td className="py-1 ps-2">Monthly Gross Salary (reference; {selectedSlipAmounts.totalWorkingDays} working days in cycle)</td>
                       <td className="text-end py-1 pe-2">{formatCurrency(selectedSlipAmounts.monthlySalary)}</td>
                     </tr>
                     <tr>
                       <td className="py-1 ps-2">
-                        Earned Salary ({selectedSlipAmounts.presentDays} present
+                        Earned Salary Before Loss of Pay ({selectedSlipAmounts.presentDays} present
                         {selectedSlipAmounts.paidLeaveDays > 0 ? ` + ${selectedSlipAmounts.paidLeaveDays} paid leave` : ''}
                         {selectedSlipAmounts.holidayDays > 0 ? ` + ${selectedSlipAmounts.holidayDays} holiday` : ''}
                         {' '}× ₹{formatCurrency(selectedSlipAmounts.perDaySalary)}/day)
                       </td>
                       <td className="text-end py-1 pe-2 fw-semibold">{formatCurrency(selectedSlipAmounts.basicSalary)}</td>
                     </tr>
-                    {selectedSlipAmounts.unpaidDeduction > 0 && (
-                      <tr style={{ backgroundColor: '#fff3cd' }}>
-                        <td className="py-1 ps-2">
-                          <span className="text-danger">
-                            Absent Deduction ({selectedSlipAmounts.absentDays > 0 ? `${selectedSlipAmounts.absentDays} absent` : ''}{selectedSlipAmounts.unpaidLeaveDays > 0 ? `${selectedSlipAmounts.absentDays > 0 ? ' + ' : ''}${selectedSlipAmounts.unpaidLeaveDays} unpaid leave` : ''} × ₹{formatCurrency(selectedSlipAmounts.perDaySalary)}/day)
-                          </span>
-                        </td>
-                        <td className="text-end py-1 pe-2 text-danger fw-bold">- {formatCurrency(selectedSlipAmounts.unpaidDeduction)}</td>
-                      </tr>
-                    )}
                     <tr style={selectedSlipAmounts.overtimeAmount > 0 ? { backgroundColor: '#d4edda' } : {}}>
                       <td className="py-1 ps-2">
                         <span style={selectedSlipAmounts.overtimeAmount > 0 ? { color: '#28a745' } : {}}>
-                          Overtime ({selectedSlipAmounts.overtimeHours || 0} hrs @ ₹150/hr)
+                          Overtime ({selectedSlipAmounts.overtimeHours || 0} hrs @ ₹{OVERTIME_RATE}/hr)
                         </span>
                       </td>
                       <td className="text-end py-1 pe-2" style={selectedSlipAmounts.overtimeAmount > 0 ? { color: '#28a745', fontWeight: 'bold' } : {}}>
@@ -1134,7 +1255,7 @@ const SalarySlip = ({ embedded = false }) => {
                     </tr>
                     <tr style={{ backgroundColor: '#f2f2f2' }}>
                       <td className="fw-bold py-1 ps-2">Gross Earnings</td>
-                      <td className="text-end fw-bold py-1 pe-2">{formatCurrency(selectedSlipAmounts.basicSalary + selectedSlipAmounts.overtimeAmount)}</td>
+                      <td className="text-end fw-bold py-1 pe-2">{formatCurrency(selectedSlipAmounts.grossEarnings)}</td>
                     </tr>
                   </tbody>
                 </table>
@@ -1179,13 +1300,22 @@ const SalarySlip = ({ embedded = false }) => {
                         )}
                         {customDed > 0 && (
                           <tr style={{ backgroundColor: '#ffe0e0' }}>
-                            <td className="py-1 ps-2 text-danger fw-semibold">Other Deduction</td>
-                            <td className="text-end fw-bold text-danger py-1 pe-2">{formatCurrency(customDed)}</td>
+                            <td className="py-1 ps-2">Other Deduction</td>
+                            <td className="text-end fw-bold text-danger py-1 pe-2">
+                              {formatCurrency(customDed)}
+                            </td>
                           </tr>
                         )}
                         <tr style={{ backgroundColor: '#f2f2f2' }}>
                           <td className="fw-bold py-1 ps-2">Total Deductions</td>
-                          <td className="text-end fw-bold text-danger py-1 pe-2">{formatCurrency(pfV + ptV + professionalTaxV + dtV + absentDeduct + customDed)}</td>
+                          <td className="text-end fw-bold text-danger py-1 pe-2">{formatCurrency(
+                            pfV +
+                            ptV +
+                            professionalTaxV +
+                            dtV +
+                            absentDeduct +
+                            customDed
+                          )}</td>
                         </tr>
                       </>);
                     })()}
@@ -1201,14 +1331,31 @@ const SalarySlip = ({ embedded = false }) => {
 
               {/* Calculation */}
               <div className="bg-light p-2 mb-3 rounded small">
-                <strong>Calculation:</strong> Basic Salary (₹{formatCurrency(selectedSlipAmounts.basicSalary)})
-                {selectedSlipAmounts.unpaidDeduction > 0 && (
-                  <span className="text-danger"> - Absent Deduction (₹{formatCurrency(selectedSlipAmounts.unpaidDeduction)})</span>
-                )}
-                {selectedSlipAmounts.overtimeAmount > 0 && (
-                  <span className="text-success"> + Overtime (₹{formatCurrency(selectedSlipAmounts.overtimeAmount)})</span>
-                )}
-                <span> - DT (₹{formatCurrency(selectedSlipAmounts.deduction)}) = Net Salary (₹{formatCurrency(selectedSlipAmounts.netSalary)})</span>
+                <strong>Calculation:</strong>
+                <div className="mt-1">
+                  Gross Earnings - Total Deductions = Net Salary
+                </div>
+                <div className="mt-1 fw-semibold">
+                  ₹{formatCurrency(
+                    selectedSlipAmounts.grossEarnings
+                  )}
+                  {' - '}
+                  ₹{formatCurrency(
+                    (() => {
+                      const bdown = getDeductionBreakdown(selectedSlip);
+                      return (
+                        bdown.pf +
+                        bdown.pt +
+                        bdown.professionalTax +
+                        (bdown.dt !== null ? bdown.dt : selectedSlipAmounts.deduction) +
+                        selectedSlipAmounts.unpaidDeduction +
+                        (Number(selectedSlip.custom_deduction) || 0)
+                      );
+                    })()
+                  )}
+                  {' = '}
+                  ₹{formatCurrency(selectedSlipAmounts.netSalary)}
+                </div>
               </div>
 
               {/* Amount in Words */}
@@ -1218,12 +1365,16 @@ const SalarySlip = ({ embedded = false }) => {
 
               {/* Gross Salary */}
               <div className="small mb-3 p-2 bg-light rounded">
-                <strong>Gross Salary (CTC):</strong> <span className="text-primary fw-bold">₹{formatCurrency(employee?.gross_salary || employee?.salary)}</span>
+                <strong>Monthly Gross Salary (reference):</strong> <span className="text-primary fw-bold">₹{formatCurrency(selectedSlipAmounts.monthlySalary)}</span>
               </div>
 
               {/* Footer */}
               <div className="d-flex justify-content-between align-items-center mt-3">
-                <div className="small">For B2BinDemand</div>
+                <div className="small">
+                  For {employee?.pf_amount != null && parseInt(employee.pf_amount) === 0
+                    ? 'PropCulture'
+                    : 'B2BinDemand'}
+                </div>
                 <div className="small">Authorized Signatory</div>
               </div>
 
